@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>리뷰 답변 생성기</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f8f7f5; font-family: sans-serif; padding: 3rem 1.5rem; color: #1a1917; }
+  .wrap { max-width: 600px; margin: 0 auto; }
+  .back { font-size: 13px; color: #999; text-decoration: none; display: inline-block; margin-bottom: 2rem; }
+  .back:hover { color: #1a1917; }
+  h1 { font-size: 22px; font-weight: 500; margin-bottom: 6px; }
+  .sub { font-size: 14px; color: #888; margin-bottom: 2rem; }
+  .row { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  select {
+    font-size: 14px; padding: 8px 12px;
+    border: 1px solid #ddd; border-radius: 8px;
+    background: #fff; color: #1a1917; cursor: pointer;
+  }
+  input[type="text"] {
+    flex: 1; font-size: 14px; padding: 8px 12px;
+    border: 1px solid #ddd; border-radius: 8px;
+    background: #fff; color: #1a1917;
+  }
+  input[type="text"]:focus { outline: none; border-color: #aaa; }
+  textarea {
+    width: 100%; min-height: 110px; padding: 10px 12px;
+    font-size: 15px; border: 1px solid #ddd; border-radius: 8px;
+    resize: vertical; font-family: sans-serif; background: #fff;
+    color: #1a1917;
+  }
+  textarea:focus, select:focus { outline: none; border-color: #aaa; }
+  .btns { display: flex; gap: 10px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
+  .btn-primary {
+    font-size: 14px; padding: 9px 20px;
+    background: #1a1917; color: #fff;
+    border: none; border-radius: 8px; cursor: pointer;
+  }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary {
+    font-size: 14px; padding: 9px 20px;
+    background: #fff; color: #1a1917;
+    border: 1px solid #ddd; border-radius: 8px; cursor: pointer;
+  }
+  .badge { font-size: 11px; padding: 3px 10px; border-radius: 99px; }
+  .badge-pos { background: #d8f3dc; color: #2d6a4f; }
+  .badge-neg { background: #fde8e8; color: #a32d2d; }
+  .badge-neu { background: #e8e8e8; color: #666; }
+  hr { border: none; border-top: 1px solid #eee; margin: 1.5rem 0; }
+  .result-label { font-size: 12px; color: #aaa; margin-bottom: 8px; }
+  .result-box {
+    background: #fff; border: 1px solid #eee; border-radius: 10px;
+    padding: 14px 16px; font-size: 15px; line-height: 1.7;
+    min-height: 80px; white-space: pre-wrap; color: #1a1917;
+  }
+  .result-box.empty { color: #bbb; }
+  .result-box.error { color: #a32d2d; background: #fde8e8; border-color: #f5c0c0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="myapps.html" class="back">← 목록으로</a>
+  <h1>리뷰 답변 생성기</h1>
+  <p class="sub">고객 리뷰를 붙여넣으면 사장님 답변을 자동으로 작성해드려요</p>
+
+  <div class="row">
+    <select id="biz">
+      <option>카페</option>
+      <option>식당</option>
+      <option>미용실</option>
+      <option>헬스장</option>
+      <option>학원</option>
+      <option>병원/의원</option>
+      <option>기타</option>
+    </select>
+    <select id="tone">
+      <option>정중하고 따뜻하게</option>
+      <option>친근하게</option>
+      <option>간결하고 전문적으로</option>
+    </select>
+  </div>
+  <div class="row">
+    <input type="text" id="storeName" placeholder="가게 이름 (선택) — 예) 행복카페" />
+  </div>
+
+  <textarea id="review" placeholder="예) 커피 맛은 좋은데 직원이 좀 불친절했어요. 다음엔 개선됐으면 좋겠네요."></textarea>
+
+  <div class="btns">
+    <button class="btn-primary" id="genBtn" onclick="generate()">답변 생성</button>
+    <button class="btn-secondary" onclick="copyResult()">복사</button>
+    <span id="sentiment"></span>
+  </div>
+
+  <hr>
+  <div class="result-label">생성된 답변</div>
+  <div class="result-box empty" id="result">답변이 여기에 표시됩니다</div>
+</div>
+
+<script>
+const ERROR_MESSAGES = {
+  529: '지금 서버가 많이 붐비고 있어요.\n잠시 후 다시 시도해주세요 🙏',
+  429: '요청이 너무 많아요.\n잠시 후 다시 시도해주세요.',
+  500: '서버에 일시적인 문제가 생겼어요.\n잠시 후 다시 시도해주세요.',
+  503: '서비스가 일시적으로 중단됐어요.\n잠시 후 다시 시도해주세요.',
+};
+
+function showError(msg) {
+  const el = document.getElementById('result');
+  el.className = 'result-box error';
+  el.textContent = msg;
+}
+
+async function generate() {
+  const review = document.getElementById('review').value.trim();
+  if (!review) { alert('리뷰를 입력해주세요'); return; }
+
+  const biz = document.getElementById('biz').value;
+  const tone = document.getElementById('tone').value;
+  const storeName = document.getElementById('storeName').value.trim();
+  const resultEl = document.getElementById('result');
+  const sentEl = document.getElementById('sentiment');
+  const btn = document.getElementById('genBtn');
+
+  const identity = storeName ? storeName + ' ' + biz + ' 사장님' : biz + ' 사장님';
+  const greeting = storeName ? '안녕하세요, ' + storeName + '입니다.' : '안녕하세요.';
+  const toneGuide = tone === '정중하고 따뜻하게'
+    ? '- 존댓말, 정중한 표현 사용. 고객의 감정에 공감하는 문장 포함. 부드럽고 따뜻한 어조. 이모지 1~2개 사용 가능.'
+    : tone === '친근하게'
+    ? '- 가볍고 친근한 말투. 딱딱한 표현 피하기. 마치 단골손님에게 말하듯 편하게. 이모지 1~2개 사용 가능.'
+    : '- 간결하고 핵심만. 감정적 표현 최소화. 사실 중심으로 짧게. 이모지 사용 금지. 100자 이내.';
+
+  sentEl.className = '';
+  sentEl.textContent = '';
+  btn.disabled = true;
+  btn.textContent = '생성 중...';
+  resultEl.className = 'result-box empty';
+  resultEl.textContent = '생성 중...';
+
+  const prompt = '당신은 ' + identity + '입니다. 아래 고객 리뷰를 분석하고 답변을 작성해주세요.\n\n'
+    + '반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 절대 포함하지 마세요.\n'
+    + '{\n  "sentiment": "pos" | "neg" | "neu",\n  "reply": "답변 텍스트"\n}\n\n'
+    + 'sentiment 판단 기준:\n'
+    + '- pos: 전반적으로 만족하는 내용\n'
+    + '- neg: 불만이나 개선 요청이 주된 내용\n'
+    + '- neu: 긍정과 부정이 섞여 있거나 단순 사실 전달\n\n'
+    + 'reply 작성 조건 — 톤: ' + tone + '\n'
+    + toneGuide + '\n'
+    + '- 답변은 반드시 "' + greeting + '" 으로 시작할 것\n'
+    + '- 끝에 방문 감사 인사로 마무리\n\n'
+    + '고객 리뷰: ' + review;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!res.ok) {
+      const msg = ERROR_MESSAGES[res.status] || '오류가 발생했어요. (' + res.status + ')\n잠시 후 다시 시도해주세요.';
+      showError(msg);
+      return;
+    }
+
+    const data = await res.json();
+    const raw = data.content?.map(i => i.text || '').join('') || '';
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    } catch(e) {
+      resultEl.className = 'result-box';
+      resultEl.textContent = raw || '응답이 비어있어요';
+      return;
+    }
+
+    const labels = { pos: '긍정 리뷰', neg: '부정 리뷰', neu: '중립 리뷰' };
+    const classes = { pos: 'badge badge-pos', neg: 'badge badge-neg', neu: 'badge badge-neu' };
+    const s = parsed.sentiment || 'neu';
+    sentEl.className = classes[s] || classes['neu'];
+    sentEl.textContent = labels[s] || '중립 리뷰';
+
+    resultEl.className = 'result-box';
+    resultEl.textContent = parsed.reply || '응답이 비어있어요';
+
+  } catch(e) {
+    showError('네트워크 오류가 발생했어요.\n인터넷 연결을 확인해주세요.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '답변 생성';
+  }
+}
+
+function copyResult() {
+  const text = document.getElementById('result').textContent;
+  if (!text || text === '답변이 여기에 표시됩니다') return;
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => alert('복사됐어요!'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand('copy');
+      alert('복사됐어요!');
+    } catch(e) {
+      alert('복사에 실패했어요. 직접 선택해서 복사해주세요.');
+    }
+    document.body.removeChild(ta);
+  }
+}
+</script>
+</body>
+</html>

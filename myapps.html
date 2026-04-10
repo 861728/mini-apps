@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>내가 만든 것들</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #f8f7f5;
+    color: #1a1917;
+    font-family: sans-serif;
+    font-size: 15px;
+    padding: 3rem 1.5rem 6rem;
+  }
+  .wrap { max-width: 700px; margin: 0 auto; }
+
+  /* 헤더 */
+  .header { margin-bottom: 2.5rem; }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .title-block { }
+  h1 { font-size: 20px; font-weight: 500; margin-bottom: 3px; }
+  .tagline { font-size: 13px; color: #999; margin-bottom: 8px; }
+  .desc-para {
+    font-size: 13px; color: #888; line-height: 1.6;
+    margin: 10px 0 8px; max-width: 420px;
+  }
+  .feedback-link { color: #888; }
+  .feedback-link:hover { color: #1a1917; }
+  .github-link {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; color: #888; text-decoration: none;
+    border: 1px solid #e0deda; border-radius: 6px;
+    padding: 4px 10px; background: #fff;
+  }
+  .github-link:hover { color: #1a1917; border-color: #aaa; }
+  .github-link svg { width: 13px; height: 13px; fill: currentColor; flex-shrink: 0; }
+  .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .count { font-size: 12px; color: #bbb; }
+
+  /* 검색 */
+  .search-wrap { position: relative; }
+  .search-icon {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    width: 14px; height: 14px; color: #bbb; pointer-events: none;
+  }
+  .search-icon svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
+  #searchInput {
+    width: 100%; padding: 8px 12px 8px 32px;
+    font-size: 13px; border: 1px solid #e0deda; border-radius: 8px;
+    background: #fff; color: #1a1917; font-family: sans-serif;
+    outline: none;
+  }
+  #searchInput:focus { border-color: #aaa; }
+  #searchInput::placeholder { color: #bbb; }
+
+  /* 테이블 */
+  table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+  thead tr { border-bottom: 1px solid #e0deda; }
+  th {
+    font-size: 11px; color: #bbb; font-weight: 400;
+    text-align: left; padding: 0 0 10px 0;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  th.th-desc { padding-left: 16px; }
+  tbody tr { border-bottom: 1px solid #eeece8; cursor: pointer; }
+  tbody tr:hover { background: #fff; }
+  tbody tr:hover .app-link { border-bottom: 1px solid #1a1917; }
+  tbody tr.hidden { display: none; }
+  td { padding: 14px 0; vertical-align: middle; }
+
+  .td-name { width: 180px; }
+  .app-link {
+    font-weight: 500; font-size: 15px; color: #1a1917;
+    text-decoration: none;
+  }
+
+  .td-desc { padding-left: 16px; }
+  .desc-text { font-size: 13px; color: #888; line-height: 1.5; }
+
+  .no-result {
+    display: none; text-align: center;
+    padding: 3rem 0; font-size: 14px; color: #bbb;
+  }
+
+  @media (max-width: 480px) {
+    .td-desc { display: none; }
+    th.th-desc { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="header-top">
+      <div class="title-block">
+        <h1>소상공인·자영업자를 위해</h1>
+        <p class="desc-para">소상공인·자영업자가 쓰기 좋은 도구 모음이에요.<br>오류가 있다면 <a class="feedback-link" href="/cdn-cgi/l/email-protection#80f9eff5f2c0e5ede1e9ecaee3efed">이 링크</a>를 통해 알려주세요. 빠르게 수정할게요.</p>
+        <a class="github-link" href="https://github.com/username" target="_blank">
+          <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          @username
+        </a>
+      </div>
+      <span class="count" id="countDisplay">6개</span>
+    </div>
+
+    <div class="search-wrap">
+      <div class="search-icon">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+      <input type="text" id="searchInput" placeholder="앱 이름이나 설명으로 검색..." oninput="filterApps()" />
+    </div>
+  </div>
+
+  <table id="appTable">
+    <thead>
+      <tr>
+        <th>이름</th>
+        <th class="th-desc">설명</th>
+      </tr>
+    </thead>
+    <tbody id="appBody">
+      <tr data-search="리뷰 답변 생성기 고객 리뷰 사장님 답변 자영업자" onclick="location.href='review-reply.html'">
+        <td class="td-name"><span class="app-link">리뷰 답변 생성기</span></td>
+        <td class="td-desc"><span class="desc-text">고객 리뷰에 사장님 답변을 자동으로 작성해줘요</span></td>
+      </tr>
+      <tr data-search="견적서 생성기 항목 PDF 출력 프리랜서 소사업자" onclick="location.href='estimate.html'">
+        <td class="td-name"><span class="app-link">견적서 생성기</span></td>
+        <td class="td-desc"><span class="desc-text">항목 입력하면 견적서를 자동 생성하고 PDF로 출력해줘요</span></td>
+      </tr>
+      <tr data-search="알바 급여 계산기 주휴수당 연장 야간수당 자영업자 소상공인" onclick="location.href='salary-calc.html'">
+        <td class="td-name"><span class="app-link">알바 급여 계산기</span></td>
+        <td class="td-desc"><span class="desc-text">주휴수당·연장·야간수당까지 포함한 정확한 급여를 계산해줘요</span></td>
+      </tr>
+      <tr data-search="근로계약서 생성기 표준양식 고용노동부 자영업자" onclick="location.href='labor-contract.html'">
+        <td class="td-name"><span class="app-link">근로계약서 생성기</span></td>
+        <td class="td-desc"><span class="desc-text">고용노동부 표준 양식 기준으로 근로계약서를 자동 생성해줘요</span></td>
+      </tr>
+      <tr data-search="구인공고 생성기 알바 모집글 당근마켓 자영업자" onclick="location.href='job-posting.html'">
+        <td class="td-name"><span class="app-link">구인공고 생성기</span></td>
+        <td class="td-desc"><span class="desc-text">정보를 입력하면 알바 모집글을 자동으로 작성해줘요</span></td>
+      </tr>
+
+      <!-- 앱 추가 템플릿
+      <tr data-search="앱이름 관련키워드">
+        <td class="td-name"><a class="app-link" href="파일명.html">앱 이름</a></td>
+        <td class="td-desc"><span class="desc-text">한 줄 설명</span></td>
+      </tr>
+      -->
+    </tbody>
+  </table>
+
+  <div class="no-result" id="noResult">검색 결과가 없어요</div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  function filterApps() {
+    const q = document.getElementById('searchInput').value.trim().toLowerCase();
+    const rows = document.querySelectorAll('#appBody tr');
+    let visible = 0;
+
+    rows.forEach(row => {
+      if (row.dataset.search === undefined) return;
+      const match = !q || row.dataset.search.toLowerCase().includes(q);
+      row.classList.toggle('hidden', !match);
+      if (match) visible++;
+    });
+
+    document.getElementById('countDisplay').textContent = visible + '개';
+    document.getElementById('noResult').style.display = visible === 0 ? 'block' : 'none';
+  }
+
+  // 초기 카운트
+  document.

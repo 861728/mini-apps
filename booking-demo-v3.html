@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>슬롯 v3</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f4f0;--white:#fff;--text:#1a1917;--muted:#888580;--border:#e0ddd8;--green:#2d6a4f;--green-bg:#d8f3dc;--red:#a32d2d;--red-bg:#fde8e8;--amber:#7d5a00;--amber-bg:#fff3cd;--blue:#1a5fa8;--blue-bg:#e6f0fb}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;min-height:100vh}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid var(--border);background:var(--white);position:sticky;top:0;z-index:50}
+.nav-logo{font-family:'DM Mono',monospace;font-size:16px;font-weight:500}
+.nav-tabs{display:flex;gap:4px;background:var(--bg);border-radius:8px;padding:3px}
+.tab-btn{font-size:13px;padding:6px 14px;border:none;background:transparent;border-radius:6px;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif;transition:all .15s}
+.tab-btn.active{background:var(--white);color:var(--text);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.page{display:none;max-width:720px;margin:0 auto;padding:1.5rem 1.5rem 5rem}
+.page.active{display:block}
+.slabel{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:12px}
+.badge{font-size:11px;padding:3px 9px;border-radius:99px;font-family:'DM Mono',monospace;white-space:nowrap}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-amber{background:var(--amber-bg);color:var(--amber)}
+.badge-blue{background:var(--blue-bg);color:var(--blue)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem}
+.stat-num{font-size:26px;font-weight:500;font-family:'DM Mono',monospace;line-height:1.1}
+.stat-label{font-size:12px;color:var(--muted);margin-top:4px}
+.day-nav{display:flex;align-items:center;gap:8px;margin-bottom:1rem}
+.dnbtn{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:14px;cursor:pointer;color:var(--muted);min-height:36px;transition:all .15s}
+.dnbtn:hover{border-color:var(--text);color:var(--text)}
+.day-label{font-size:15px;font-weight:500;flex:1}
+.date-strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:1.25rem;scrollbar-width:none}
+.date-strip::-webkit-scrollbar{display:none}
+.date-chip{flex-shrink:0;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--white);cursor:pointer;text-align:center;min-width:52px;transition:all .15s}
+.date-chip:hover{border-color:var(--text)}
+.date-chip.active{background:var(--text);color:var(--white);border-color:var(--text)}
+.date-chip.is-today{border-color:var(--blue)}
+.date-chip.is-today:not(.active) .dc-today{color:var(--blue)}
+.dc-day{font-size:11px;opacity:.6}
+.dc-date{font-size:16px;font-weight:500;font-family:'DM Mono',monospace;margin-top:1px}
+.dc-today{font-size:9px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace}
+.date-chip.active .dc-day,.date-chip.active .dc-today{opacity:.7;color:inherit}
+.slots-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-bottom:1.25rem}
+.slot{padding:12px;border-radius:10px;border:1.5px solid var(--border);background:var(--white);cursor:pointer;text-align:center;transition:all .15s}
+.slot:hover:not(.booked){border-color:var(--text)}
+.slot.booked{background:#f5f4f0;border-color:#e0ddd8;cursor:not-allowed;opacity:.55}
+.slot.booked .slot-time{text-decoration:line-through;color:var(--muted)}
+.slot.selected{background:var(--blue-bg);border-color:var(--blue);border-width:2px}
+.slot-time{font-family:'DM Mono',monospace;font-size:15px;font-weight:500}
+.slot-status{font-size:11px;margin-top:3px;color:var(--muted)}
+.slot.selected .slot-status{color:var(--blue)}
+.empty-state{text-align:center;padding:2.5rem 1rem;color:var(--muted);grid-column:1/-1}
+.empty-icon{font-size:32px;margin-bottom:8px}
+.empty-text{font-size:14px;line-height:1.6}
+.booking-inline{background:var(--blue-bg);border:1.5px solid var(--blue);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:12px;animation:slideDown .2s ease}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.selected-summary{font-size:15px;font-weight:500;color:var(--blue);margin-bottom:1rem}
+.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem}
+.type-btn{padding:12px 8px;border-radius:10px;border:1.5px solid var(--border);background:var(--white);cursor:pointer;text-align:center;transition:all .15s;font-family:'DM Sans',sans-serif}
+.type-btn:hover{border-color:var(--text)}
+.type-btn.active{background:var(--text);color:var(--white);border-color:var(--text)}
+.type-icon{font-size:20px;margin-bottom:4px}
+.type-name{font-size:13px;font-weight:500}
+.type-desc{font-size:11px;color:var(--muted);margin-top:2px}
+.type-btn.active .type-desc{color:rgba(255,255,255,.6)}
+.member-profile-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:14px}
+.mpc-avatar{width:48px;height:48px;border-radius:50%;background:#e8e5e0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500;color:var(--muted);flex-shrink:0}
+.mpc-info{flex:1}
+.mpc-name{font-size:17px;font-weight:500;margin-bottom:2px}
+.mpc-detail{font-size:13px;color:var(--muted)}
+.mpc-badge{font-size:12px;padding:4px 12px;border-radius:99px;font-family:'DM Mono',monospace}
+.type-btn.disabled{opacity:.45;cursor:default;border-style:dashed}
+.type-btn.disabled:hover{border-color:var(--border)}
+.type-btn .trial-badge{font-size:10px;background:var(--amber-bg);color:var(--amber);border-radius:4px;padding:1px 6px;margin-top:4px;display:inline-block}
+.step-hint{font-size:13px;color:var(--blue);margin-bottom:10px;display:none}
+.step-hint.show{display:block}
+.form-group{margin-bottom:12px}
+.form-label{font-size:13px;color:var(--muted);margin-bottom:4px;display:block}
+.form-input{width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--border);border-radius:8px;background:var(--white);color:var(--text);font-family:'DM Sans',sans-serif}
+.form-input:focus{outline:none;border-color:var(--text)}
+.form-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+.btn{font-size:14px;padding:11px 20px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid var(--border);background:var(--white);color:var(--text);transition:all .15s}
+.btn:hover{background:var(--bg)}
+.btn-primary{background:var(--text);color:var(--white);border-color:var(--text)}
+.btn-primary:hover{opacity:.85}
+.btn-sm{font-size:12px;padding:6px 12px}
+.btn-warn{background:var(--amber-bg);color:var(--amber);border-color:#f0d080;font-size:12px;padding:5px 10px}
+.btn-cancel{font-size:11px;padding:3px 8px;border-radius:6px;background:var(--red-bg);color:var(--red);border:1px solid #f5c0c0;cursor:pointer}
+.member-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #f5f4f0}
+.member-row:last-child{border-bottom:none}
+.avatar{width:38px;height:38px;border-radius:50%;background:#e8e5e0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;color:var(--muted);flex-shrink:0}
+.member-info{flex:1;min-width:0}
+.member-name{font-size:14px;font-weight:500}
+.member-detail{font-size:12px;color:var(--muted);margin-top:1px}
+.progress-wrap{margin-top:6px}
+.progress-text{font-size:11px;color:var(--muted);margin-bottom:3px}
+.progress-bar{height:4px;background:#e8e5e0;border-radius:99px;overflow:hidden}
+.progress-fill{height:100%;border-radius:99px;background:var(--text);transition:width .4s}
+.progress-fill.low{background:var(--red)}
+.progress-fill.mid{background:#BA7517}
+.member-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.sched-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f5f4f0}
+.sched-row:last-child{border-bottom:none}
+.sched-time{font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);min-width:48px}
+.sched-name{font-size:14px;font-weight:500;flex:1}
+hr{border:none;border-top:1px solid var(--border);margin:1.5rem 0}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:100;align-items:center;justify-content:center}
+.overlay.show{display:flex}
+.modal{background:var(--white);border-radius:16px;padding:1.75rem 1.5rem;max-width:340px;width:90%;text-align:center}
+.modal-icon{font-size:40px;margin-bottom:12px}
+.modal-title{font-size:18px;font-weight:500;margin-bottom:8px}
+.modal-body{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:1.25rem}
+.modal-actions{display:flex;gap:8px;justify-content:center}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--white);font-size:13px;padding:10px 20px;border-radius:99px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:200;white-space:nowrap}
+.toast.show{opacity:1}
+.renew-banner{background:var(--amber-bg);border:1px solid #f0d080;border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:10px}
+.renew-text{font-size:13px;color:var(--amber);flex:1}
+.success-banner{background:var(--green-bg);border:1px solid #a8d8b8;border-radius:10px;padding:10px 14px;font-size:13px;color:var(--green);margin-bottom:12px;display:none;animation:slideDown .2s ease}
+.success-banner.show{display:block}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <span class="nav-logo">슬롯</span>
+  <div class="nav-tabs" id="nav-tabs">
+    <button class="tab-btn active" onclick="showPage('instructor',this)">강사</button>
+    <button class="tab-btn" onclick="showPage('member',this)">회원 예약</button>
+  </div>
+</nav>
+
+<!-- 강사 -->
+<div class="page active" id="page-instructor">
+  <div class="stats">
+    <div class="stat-card"><div class="stat-num" id="stat-today">0</div><div class="stat-label">오늘 수업</div></div>
+    <div class="stat-card"><div class="stat-num">4</div><div class="stat-label">활성 회원</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-slots">0</div><div class="stat-label">빈 슬롯</div></div>
+  </div>
+  <div class="day-nav">
+    <button class="dnbtn" onclick="changeIDay(-1)">←</button>
+    <span class="day-label" id="iday-label"></span>
+    <button class="dnbtn" style="font-size:12px;padding:6px 12px;" onclick="changeIDay(0,true)">오늘</button>
+    <button class="dnbtn" onclick="changeIDay(1)">→</button>
+  </div>
+  <div class="slabel">스케줄</div>
+  <div class="card" id="sched-card"></div>
+  <hr>
+  <div class="slabel">회원 관리</div>
+  <div class="renew-banner">
+    <span class="renew-text">⚠ 잔여 3회 이하 회원 2명 — 재등록 안내 필요해요</span>
+    <button class="btn btn-warn" onclick="showToast('재등록 안내 발송됐어요 ✓')">안내 보내기</button>
+  </div>
+  <div class="card" id="member-card"></div>
+  <hr>
+  <div class="slabel">예약 링크</div>
+  <div class="card" style="display:flex;align-items:center;gap:12px;">
+    <div style="flex:1;">
+      <div style="font-size:14px;font-weight:500;margin-bottom:3px;">회원 예약 링크</div>
+      <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);">slot.demo/book/김필라</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px;">회원에게 보내면 바로 예약 가능해요</div>
+    </div>
+    <button class="btn btn-sm" onclick="showToast('링크 복사됐어요!')">복사</button>
+  </div>
+</div>
+
+<!-- 회원 예약 -->
+<div class="page" id="page-member">
+  <div class="success-banner" id="success-banner"></div>
+  <div class="member-profile-card" id="member-profile"></div>
+  <div class="slabel">수업 종류</div>
+  <div class="type-grid" id="type-grid"></div>
+  <div class="slabel">날짜 선택</div>
+  <div class="step-hint" id="date-hint">👆 날짜를 선택해주세요</div>
+  <div class="date-strip" id="date-strip"></div>
+  <div class="slabel">시간 선택</div>
+  <div class="slots-grid" id="slots-grid"></div>
+  <div id="booking-inline" style="display:none;"></div>
+</div>
+
+<div class="overlay" id="confirm-overlay">
+  <div class="modal">
+    <div class="modal-icon">✅</div>
+    <div class="modal-title">예약 완료!</div>
+    <div class="modal-body" id="confirm-body"></div>
+    <div class="modal-actions"><button class="btn btn-primary" onclick="closeModal()">확인</button></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const DAYS=['일','월','화','수','목','금','토'];
+const BASE=new Date(2026,3,7);
+let curM=0,curI=0,selSlot=null,selType=null;
+
+// 회원별 데이터 — 실제로는 링크의 ID로 로드됨
+const MEMBER_DB={
+  'jisu':{name:'김지수',remaining:22,types:['필라테스'],avatar:'김'},
+  'minjun':{name:'이민준',remaining:3,types:['PT'],avatar:'이'},
+  'seoyeon':{name:'박서연',remaining:1,types:['필라테스'],avatar:'박'},
+  'hyunwoo':{name:'최현우',remaining:14,types:['PT'],avatar:'최'},
+};
+
+// URL 파라미터로 회원 감지 (데모에서는 기본값 jisu)
+const urlParams=new URLSearchParams(window.location.search);
+const memberId=urlParams.get('member')||'jisu';
+const currentMember=MEMBER_DB[memberId]||MEMBER_DB['jisu'];
+
+// 수업 타입 정의
+const TYPE_DEFS=[
+  {id:'PT',icon:'🏋️',name:'1:1 PT',desc:'50분'},
+  {id:'필라테스',icon:'🧘',name:'필라테스',desc:'50분'},
+  {id:'듀엣',icon:'👥',name:'듀엣',desc:'50분'},
+  {id:'그룹',icon:'🏃',name:'그룹',desc:'60분'},
+];
+
+const SD={
+  0:[{time:'09:00',booked:true,who:'김지수'},{time:'10:00',booked:true,who:'이민준'},{time:'11:00',booked:false},{time:'12:00',booked:true,who:'박서연'},{time:'14:00',booked:false},{time:'15:00',booked:true,who:'최현우'},{time:'16:00',booked:false},{time:'17:00',booked:true,who:'김지수'},{time:'18:00',booked:true,who:'이민준'},{time:'19:00',booked:false}],
+  1:[{time:'10:00',booked:false},{time:'11:00',booked:true,who:'최현우'},{time:'14:00',booked:true,who:'이민준'},{time:'15:00',booked:false},{time:'16:00',booked:false},{time:'18:00',booked:true,who:'박서연'}],
+  2:[{time:'09:00',booked:false},{time:'10:00',booked:false},{time:'11:00',booked:false},{time:'14:00',booked:false},{time:'15:00',booked:true,who:'김지수'},{time:'17:00',booked:false}],
+  3:[{time:'10:00',booked:false},{time:'11:00',booked:false},{time:'13:00',booked:false},{time:'15:00',booked:false},{time:'16:00',booked:false}],
+  4:[],
+  5:[{time:'09:00',booked:false},{time:'10:00',booked:false},{time:'14:00',booked:false}],
+  6:[{time:'10:00',booked:false},{time:'11:00',booked:false},{time:'15:00',booked:false},{time:'17:00',booked:false}]
+};
+
+const members=[
+  {name:'김지수',type:'필라테스',total:30,used:8,next:'오늘 17:00'},
+  {name:'이민준',type:'PT',total:10,used:7,next:'내일 14:00'},
+  {name:'박서연',type:'필라테스',total:10,used:9,next:'예약 없음'},
+  {name:'최현우',type:'PT',total:20,used:6,next:'모레 11:00'}
+];
+
+function gDate(o){const d=new Date(BASE);d.setDate(d.getDate()+o);return d;}
+function gLabel(o){const d=gDate(o);return `${d.getMonth()+1}월 ${d.getDate()}일 (${DAYS[d.getDay()]})`;}
+
+function changeIDay(dir,toToday){
+  curI=toToday?0:Math.max(-3,Math.min(6,curI+dir));
+  renderIDay();renderSched();updateStats();
+}
+function renderIDay(){
+  const l=document.getElementById('iday-label');
+  l.textContent=curI===0?`오늘 — ${gLabel(0)}`:curI===1?`내일 — ${gLabel(1)}`:gLabel(curI);
+}
+function updateStats(){
+  const sl=SD[Math.max(0,curI)]||[];
+  document.getElementById('stat-today').textContent=sl.filter(s=>s.booked).length;
+  document.getElementById('stat-slots').textContent=sl.filter(s=>!s.booked).length;
+}
+
+function renderDateStrip(){
+  document.getElementById('date-strip').innerHTML=Array.from({length:7},(_,i)=>{
+    const d=gDate(i);
+    return `<div class="date-chip ${i===curM?'active':''} ${i===0?'is-today':''}" onclick="selectDay(${i})">
+      <div class="dc-day">${DAYS[d.getDay()]}</div>
+      <div class="dc-date">${d.getDate()}</div>
+      <div class="dc-today">${i===0?'오늘':''}</div>
+    </div>`;
+  }).join('');
+}
+function selectDay(i){
+  curM=i;selSlot=null;
+  document.getElementById('booking-inline').style.display='none';
+  document.getElementById('date-hint').classList.remove('show');
+  renderDateStrip();renderSlots();
+}
+
+function renderSlots(){
+  const grid=document.getElementById('slots-grid');
+  const slots=SD[curM]||[];
+  if(!slots.length){
+    grid.innerHTML=`<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-text">이 날은 예약 가능한 수업이 없어요<br><span style="font-size:12px;color:#bbb;">다른 날짜를 선택해보세요</span></div></div>`;
+    return;
+  }
+  grid.innerHTML=slots.map(s=>{
+    const cls='slot '+(s.booked?'booked':selSlot===s.time?'selected':'');
+    const click=s.booked?'':('onclick="selectSlot(\'' + s.time + '\')"');
+    const status=s.booked?'예약됨':selSlot===s.time?'선택됨':'예약 가능';
+    return '<div class="'+cls+'" '+click+'>'
+      +'<div class="slot-time">'+s.time+'</div>'
+      +'<div class="slot-status">'+status+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function selectSlot(time){
+  selSlot=time;renderSlots();
+  const il=document.getElementById('booking-inline');
+  il.style.display='block';
+  const remAfter=currentMember.remaining-1;
+  il.innerHTML='<div class="booking-inline">'
+    +'<div class="selected-summary">'+gLabel(curM)+' '+time+' · '+selType+'</div>'
+    +'<div style="font-size:13px;color:var(--muted);margin-bottom:1rem;">예약 후 잔여 횟수: <strong style=\"color:var(--text)\">'+remAfter+'회</strong></div>'
+    +'<div style="display:flex;gap:8px;">'
+    +'<button class="btn" style="flex:1;" onclick="cancelBooking()">취소</button>'
+    +'<button class="btn btn-primary" style="flex:2;" onclick="confirmBooking()">예약 확정</button>'
+    +'</div>'
+    +'</div>';
+  il.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function cancelBooking(){
+  selSlot=null;
+  document.getElementById('booking-inline').style.display='none';
+  renderSlots();
+}
+
+function confirmBooking(){
+  const slot=SD[curM]?.find(s=>s.time===selSlot);
+  if(slot){slot.booked=true;slot.who=currentMember.name;}
+  currentMember.remaining=Math.max(0,currentMember.remaining-1);
+  document.getElementById('confirm-body').innerHTML=
+    gLabel(curM)+' <strong>'+selSlot+'</strong><br>'+selType+'<br><br>잔여 횟수: <strong>'+currentMember.remaining+'회</strong>';
+  document.getElementById('confirm-overlay').classList.add('show');
+  selSlot=null;
+  document.getElementById('booking-inline').style.display='none';
+  renderSlots();updateStats();
+}
+
+function closeModal(){
+  document.getElementById('confirm-overlay').classList.remove('show');
+  curM=0;selSlot=null;
+  renderDateStrip();renderSlots();
+  const b=document.getElementById('success-banner');
+  b.textContent='✓ 예약이 완료됐어요. 강사님이 곧 확인할 거예요.';
+  b.classList.add('show');
+  setTimeout(()=>b.classList.remove('show'),4000);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function renderMemberPage(){
+  // 회원 프로필 카드
+  const m=currentMember;
+  const rem=m.remaining;
+  const bc=rem<=1?'badge-red':rem<=3?'badge-amber':'badge-green';
+  document.getElementById('member-profile').innerHTML=
+    '<div class="mpc-avatar">'+m.avatar+'</div>'
+    +'<div class="mpc-info">'
+    +'<div class="mpc-name">'+m.name+'님</div>'
+    +'<div class="mpc-detail">김필라 강사</div>'
+    +'</div>'
+    +'<span class="badge '+bc+' mpc-badge">'+rem+'회 남음</span>';
+
+  // 수업 종류 렌더 — 본인 권종 활성, 나머지는 체험 가능
+  const owned=m.types||[];
+  document.getElementById('type-grid').innerHTML=TYPE_DEFS.map((t,i)=>{
+    const isOwned=owned.includes(t.id);
+    const isFirst=i===0&&!selType;
+    if(isOwned&&isFirst)selType=t.id;
+    const cls='type-btn'+(isOwned&&selType===t.id?' active':'')+(isOwned?'':' disabled');
+    const trial=isOwned?'':'<div class="trial-badge">1회 무료 체험</div>';
+    const click=isOwned
+      ?('onclick="selectType(this,\'' + t.id + '\')"')
+      :('onclick="selectTypeTrial(this,\'' + t.id + '\')"');
+    return '<div class="'+cls+'" '+click+'>'
+      +'<div class="type-icon">'+t.icon+'</div>'
+      +'<div class="type-name">'+t.name+'</div>'
+      +'<div class="type-desc">'+t.desc+'</div>'
+      +trial
+      +'</div>';
+  }).join('');
+}
+
+function selectType(el,type){
+  selType=type;
+  document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  if(selSlot){const s=document.querySelector('.selected-summary');if(s)s.textContent=gLabel(curM)+' '+selSlot+' · '+type;}
+  document.getElementById('date-hint').classList.add('show');
+  setTimeout(()=>document.getElementById('date-strip').scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+}
+
+function selectTypeTrial(el,type){
+  selType=type;
+  document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  showToast('1회 무료 체험으로 예약할게요');
+  document.getElementById('date-hint').classList.add('show');
+  setTimeout(()=>document.getElementById('date-strip').scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+}
+
+function renderSched(){
+  const di=Math.max(0,curI);
+  const booked=(SD[di]||[]).filter(s=>s.booked);
+  document.getElementById('sched-card').innerHTML=!booked.length
+    ?`<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">이 날은 예약된 수업이 없어요</div></div>`
+    :booked.map(s=>`<div class="sched-row">
+        <span class="sched-time">${s.time}</span>
+        <span class="sched-name">${s.who}</span>
+        <span class="badge badge-blue" style="margin-right:6px;">확정</span>
+        <button class="btn-cancel" onclick="cancelSlot(${di},'${s.time}')">취소</button>
+      </div>`).join('');
+}
+
+function cancelSlot(di,time){
+  const slot=SD[di]?.find(s=>s.time===time);
+  if(slot){slot.booked=false;delete slot.who;}
+  renderSched();updateStats();showToast(`${time} 예약이 취소됐어요`);
+}
+
+const MEMBER_LINKS={'김지수':'?member=jisu','이민준':'?member=minjun','박서연':'?member=seoyeon','최현우':'?member=hyunwoo'};
+
+function renderMembers(){
+  document.getElementById('member-card').innerHTML=members.map(m=>{
+    const rem=m.total-m.used,pct=Math.round(m.used/m.total*100);
+    const fc=rem<=1?'low':rem<=3?'mid':'';
+    const bc=rem<=1?'badge-red':rem<=3?'badge-amber':'badge-green';
+    const link=MEMBER_LINKS[m.name]||'#';
+    return `<div class="member-row">
+      <div class="avatar">${m.name[0]}</div>
+      <div class="member-info">
+        <div class="member-name">${m.name}</div>
+        <div class="member-detail">${m.type} · 다음: ${m.next}</div>
+        <div class="progress-wrap">
+          <div class="progress-text">${m.used}/${m.total}회 사용</div>
+          <div class="progress-bar"><div class="progress-fill ${fc}" style="width:${pct}%"></div></div>
+        </div>
+      </div>
+      <div class="member-right">
+        <span class="badge ${bc}">${rem}회 남음</span>
+        <button class="btn btn-sm" style="font-size:11px;padding:3px 8px;" onclick="copyMemberLink('${link}','${m.name}')">링크</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function copyMemberLink(link,name){showToast(name+' 예약 링크 복사됐어요');}
+
+function showPage(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  btn.classList.add('active');
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+renderIDay();updateStats();renderSched();renderMembers();renderMemberPage();renderDateStrip();renderSlots();
+</script>
+</body>
+</html>

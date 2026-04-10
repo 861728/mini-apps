@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>견적서 생성기</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f8f7f5; font-family: sans-serif; color: #1a1917; }
+
+  .app { max-width: 640px; margin: 0 auto; padding: 3rem 1.5rem; }
+  .back { font-size: 13px; color: #999; text-decoration: none; display: inline-block; margin-bottom: 2rem; }
+  .back:hover { color: #1a1917; }
+  h1 { font-size: 22px; font-weight: 500; margin-bottom: 6px; }
+  .sub { font-size: 14px; color: #888; margin-bottom: 2rem; }
+
+  .section-title {
+    font-size: 11px; color: #bbb; letter-spacing: 0.06em;
+    text-transform: uppercase; margin: 1.5rem 0 10px;
+    border-bottom: 1px solid #eee; padding-bottom: 6px;
+  }
+
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12px; color: #888; margin-bottom: 5px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 9px 12px; font-size: 14px;
+    border: 1px solid #ddd; border-radius: 8px;
+    background: #fff; color: #1a1917; font-family: sans-serif;
+  }
+  .field textarea { min-height: 80px; resize: vertical; }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: #aaa; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  /* 항목 행 */
+  .items-header {
+    display: grid;
+    grid-template-columns: 2fr 64px 110px 80px 32px;
+    gap: 8px; margin-bottom: 6px; padding: 0 2px;
+  }
+  .items-header span { font-size: 11px; color: #bbb; }
+  .item-row {
+    display: grid;
+    grid-template-columns: 2fr 64px 110px 80px 32px;
+    gap: 8px; margin-bottom: 8px; align-items: center;
+  }
+  .item-row input {
+    padding: 8px 10px; font-size: 14px;
+    border: 1px solid #ddd; border-radius: 8px;
+    background: #fff; color: #1a1917; width: 100%;
+    font-family: sans-serif;
+  }
+  .item-row input:focus { outline: none; border-color: #aaa; }
+  .item-row .price-display {
+    padding: 8px 10px; font-size: 13px;
+    border: 1px solid #eee; border-radius: 8px;
+    background: #f8f7f5; color: #888;
+    text-align: right; white-space: nowrap; overflow: hidden;
+  }
+  .del-btn {
+    width: 28px; height: 28px; border: 1px solid #eee;
+    border-radius: 6px; background: #fff; cursor: pointer;
+    font-size: 16px; color: #bbb;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .del-btn:hover { border-color: #f87171; color: #f87171; }
+  .add-btn {
+    font-size: 13px; color: #888; border: 1px dashed #ddd;
+    border-radius: 8px; background: transparent; padding: 8px;
+    width: 100%; cursor: pointer; margin-bottom: 14px;
+  }
+  .add-btn:hover { border-color: #aaa; color: #1a1917; }
+
+  /* 할인 */
+  .discount-row {
+    display: flex; gap: 10px; align-items: center;
+    background: #fff; border: 1px solid #eee; border-radius: 8px;
+    padding: 10px 12px; margin-bottom: 14px; font-size: 13px;
+  }
+  .discount-row label { color: #888; flex-shrink: 0; }
+  .discount-row input {
+    width: 80px; padding: 5px 8px; font-size: 13px;
+    border: 1px solid #ddd; border-radius: 6px;
+    background: #fff; color: #1a1917;
+  }
+  .discount-row input:focus { outline: none; border-color: #aaa; }
+  .discount-row select {
+    padding: 5px 8px; font-size: 13px;
+    border: 1px solid #ddd; border-radius: 6px;
+    background: #fff; color: #1a1917;
+  }
+  .discount-row .discount-result { color: #e55; margin-left: auto; font-weight: 500; }
+
+  /* 부가세 */
+  .vat-row {
+    display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .vat-btn {
+    font-size: 13px; padding: 7px 14px; border-radius: 8px;
+    border: 1px solid #ddd; background: #fff; cursor: pointer; color: #666;
+    transition: all .1s;
+  }
+  .vat-btn.active { background: #1a1917; color: #fff; border-color: #1a1917; }
+
+  /* 유효기간 경고 */
+  .valid-warn {
+    font-size: 12px; margin-top: 4px; display: none;
+  }
+  .valid-warn.show { display: block; }
+  .valid-warn.expired { color: #a32d2d; }
+  .valid-warn.soon { color: #7d5a00; }
+
+  .btns { display: flex; gap: 10px; margin-top: 16px; }
+  .btn-primary {
+    font-size: 14px; padding: 10px 22px;
+    background: #1a1917; color: #fff;
+    border: none; border-radius: 8px; cursor: pointer;
+  }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary {
+    font-size: 14px; padding: 10px 22px;
+    background: #fff; color: #1a1917;
+    border: 1px solid #ddd; border-radius: 8px; cursor: pointer;
+  }
+
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+
+  /* 미리보기 */
+  .preview { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 2rem; }
+  .preview-label { font-size: 12px; color: #aaa; margin-bottom: 12px; }
+  .preview.empty { color: #bbb; font-size: 14px; min-height: 80px; display: flex; align-items: center; justify-content: center; }
+
+  /* 견적서 내용 */
+  .est-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; }
+  .est-title { font-size: 26px; font-weight: 700; color: #1a1917; letter-spacing: 0.1em; }
+  .est-no { font-size: 12px; color: #aaa; margin-top: 4px; }
+  .est-stamp {
+    width: 60px; height: 60px; border-radius: 50%;
+    border: 2px solid #e55; color: #e55;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-align: center;
+    line-height: 1.3;
+  }
+  .est-parties {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;
+  }
+  .est-party { background: #f8f7f5; border-radius: 8px; padding: 12px 14px; }
+  .est-party-role { font-size: 11px; color: #aaa; margin-bottom: 6px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .est-party-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .est-party-detail { font-size: 12px; color: #666; line-height: 1.7; }
+  .est-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; font-size: 13px; }
+  .est-meta-item { }
+  .est-meta-label { color: #aaa; font-size: 11px; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .est-meta-value { color: #1a1917; font-weight: 500; }
+  .est-meta-value.warn { color: #a32d2d; }
+  .est-meta-value.soon { color: #7d5a00; }
+  .est-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 14px; }
+  .est-table th { background: #f8f7f5; padding: 10px 12px; text-align: left; font-weight: 500; font-size: 11px; color: #888; border-bottom: 2px solid #eee; letter-spacing: 0.04em; text-transform: uppercase; }
+  .est-table td { padding: 10px 12px; border-bottom: 1px solid #f5f5f5; color: #1a1917; }
+  .est-table td.num { text-align: right; }
+  .est-table tr.discount-line td { color: #a32d2d; font-size: 13px; }
+
+  .est-summary { display: flex; justify-content: flex-end; margin-bottom: 1.5rem; }
+  .est-summary-box { min-width: 220px; }
+  .est-summary-row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; font-size: 13px; border-bottom: 1px solid #f5f5f5; gap: 1rem; }
+  .est-summary-row:last-child { border-bottom: none; }
+  .est-summary-label { color: #888; }
+  .est-summary-total { font-size: 15px; font-weight: 700; color: #1a1917; padding-top: 8px; border-top: 2px solid #1a1917 !important; margin-top: 4px; }
+  .est-summary-total .est-summary-label { color: #1a1917; font-weight: 600; }
+
+  .est-note { font-size: 13px; color: #666; line-height: 1.7; border-top: 1px solid #eee; padding-top: 1rem; }
+  .est-footer { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: flex-end; font-size: 12px; color: #aaa; }
+  .est-sign { text-align: center; }
+  .est-sign-line { width: 120px; border-bottom: 1px solid #ccc; margin-bottom: 6px; padding-bottom: 24px; }
+  .est-sign-label { font-size: 11px; color: #aaa; }
+
+  /* PDF 안내 배너 */
+  .pdf-guide {
+    margin-top: 12px; background: #e6f0fb; border: 1px solid #c0d8f5;
+    border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #1a5fa8;
+    display: none;
+  }
+  .pdf-guide.show { display: flex; align-items: center; gap: 10px; }
+  .pdf-guide strong { font-weight: 600; }
+
+  .download-btn {
+    margin-top: 1rem; font-size: 14px; padding: 10px 22px;
+    background: #1a1917; color: #fff;
+    border: none; border-radius: 8px; cursor: pointer; display: none;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .app > *:not(.preview-wrap) { display: none !important; }
+    .preview-label, .download-btn, .pdf-guide { display: none !important; }
+    .preview { border: none; padding: 0; border-radius: 0; box-shadow: none; }
+    .preview-wrap { display: block !important; }
+    .est-stamp { border-color: #e55 !important; color: #e55 !important; }
+  }
+
+  @media (max-width: 520px) {
+    .row2, .row3 { grid-template-columns: 1fr; }
+    .items-header, .item-row { grid-template-columns: 1fr 48px 90px 32px; }
+    .items-header span:nth-child(4), .item-row .price-display { display: none; }
+    .est-parties { grid-template-columns: 1fr; }
+    .est-meta { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <a href="myapps.html" class="back">← 목록으로</a>
+  <h1>견적서 생성기</h1>
+  <p class="sub">정보를 입력하면 견적서를 자동으로 만들어드려요</p>
+
+  <!-- 공급자 -->
+  <div class="section-title">내 정보 (공급자)</div>
+  <div class="row2">
+    <div class="field">
+      <label>업체명 / 이름</label>
+      <input id="myName" placeholder="예) 홍길동 디자인" />
+    </div>
+    <div class="field">
+      <label>사업자등록번호 (선택)</label>
+      <input id="myBizNo" placeholder="예) 123-45-67890" maxlength="12" oninput="formatBizNo(this)" />
+    </div>
+  </div>
+  <div class="row2">
+    <div class="field">
+      <label>연락처 (선택)</label>
+      <input id="myPhone" placeholder="예) 010-1234-5678" />
+    </div>
+    <div class="field">
+      <label>이메일 (선택)</label>
+      <input id="myEmail" type="email" placeholder="예) hello@example.com" />
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="field">
+      <label>은행 / 계좌번호 (선택)</label>
+      <input id="myBank" placeholder="예) 국민은행 123-456-789012" />
+    </div>
+    <div class="field">
+      <label>예금주 (선택)</label>
+      <input id="myAccountName" placeholder="예) 홍길동" />
+    </div>
+  </div>
+
+  <!-- 고객사 -->
+  <div class="section-title">고객사 (공급받는자)</div>
+  <div class="row2">
+    <div class="field">
+      <label>고객사명</label>
+      <input id="clientName" placeholder="예) (주)클로드컴퍼니" />
+    </div>
+    <div class="field">
+      <label>담당자 / 부서 (선택)</label>
+      <input id="clientContact" placeholder="예) 김담당 / 마케팅팀" />
+    </div>
+  </div>
+
+  <!-- 견적 정보 -->
+  <div class="section-title">견적 정보</div>
+  <div class="row3">
+    <div class="field">
+      <label>견적 번호</label>
+      <input id="estNo" placeholder="예) 2026-001" />
+    </div>
+    <div class="field">
+      <label>견적일</label>
+      <input id="estDate" type="date" />
+    </div>
+    <div class="field">
+      <label>유효기간</label>
+      <input id="validDate" type="date" onchange="checkValidDate()" />
+      <div class="valid-warn" id="validWarn"></div>
+    </div>
+  </div>
+
+  <!-- 항목 -->
+  <div class="section-title">항목</div>
+  <div class="items-header">
+    <span>품목명</span>
+    <span>수량</span>
+    <span>단가</span>
+    <span style="text-align:right;">소계</span>
+    <span></span>
+  </div>
+  <div id="items"></div>
+  <button class="add-btn" onclick="addItem()">+ 항목 추가</button>
+
+  <!-- 할인 -->
+  <div class="discount-row">
+    <label>할인</label>
+    <input type="number" id="discountVal" value="0" min="0" oninput="updateDiscountDisplay()" />
+    <select id="discountType" onchange="updateDiscountDisplay()">
+      <option value="amount">원 (금액)</option>
+      <option value="percent">% (비율)</option>
+    </select>
+    <span class="discount-result" id="discountResult">-</span>
+  </div>
+
+  <!-- 부가세 -->
+  <div class="section-title">부가세</div>
+  <div class="vat-row" id="vatRow">
+    <button class="vat-btn active" onclick="setVat('10', this)">과세 10%</button>
+    <button class="vat-btn" onclick="setVat('0', this)">영세율 0%</button>
+    <button class="vat-btn" onclick="setVat('exempt', this)">면세</button>
+    <button class="vat-btn" onclick="setVat('included', this)">부가세 포함</button>
+  </div>
+
+  <!-- 비고 -->
+  <div class="field">
+    <label>비고 / 특이사항 (선택)</label>
+    <textarea id="note" placeholder="결제 조건, 납기일, 계좌번호, 기타 안내사항 등"></textarea>
+  </div>
+
+  <div class="btns">
+    <button class="btn-primary" id="genBtn" onclick="generate()">견적서 생성</button>
+    <button class="btn-secondary" onclick="resetForm()">초기화</button>
+  </div>
+
+  <hr>
+
+  <div class="preview-wrap">
+    <div class="preview-label">미리보기</div>
+    <div class="preview empty" id="preview">견적서가 여기에 표시됩니다</div>
+    <div class="pdf-guide" id="pdfGuide">
+      💡 <span><strong>PDF 저장 방법:</strong> 아래 버튼 클릭 → 인쇄 대화상자에서 프린터를 <strong>"PDF로 저장"</strong> 선택</span>
+    </div>
+    <button class="download-btn" id="downloadBtn" onclick="window.print()">🖨 인쇄 / PDF 저장</button>
+  </div>
+</div>
+
+<script>
+/* ── 상태 ── */
+let items = [{ name: '', qty: 1, price: 0 }];
+let vatMode = '10'; // '10' | '0' | 'exempt' | 'included'
+
+/* ── 부가세 선택 ── */
+function setVat(mode, btn) {
+  vatMode = mode;
+  document.querySelectorAll('.vat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateDiscountDisplay();
+}
+
+/* ── 사업자번호 포맷 ── */
+function formatBizNo(el) {
+  let v = el.value.replace(/\D/g, '');
+  if (v.length > 3 && v.length <= 5) v = v.slice(0,3) + '-' + v.slice(3);
+  else if (v.length > 5) v = v.slice(0,3) + '-' + v.slice(3,5) + '-' + v.slice(5,10);
+  el.value = v;
+}
+
+/* ── 유효기간 경고 ── */
+function checkValidDate() {
+  const val = document.getElementById('validDate').value;
+  const warn = document.getElementById('validWarn');
+  if (!val) { warn.className = 'valid-warn'; return; }
+  const diff = Math.ceil((new Date(val) - new Date()) / 86400000);
+  if (diff < 0) {
+    warn.textContent = '⚠ 이미 만료된 날짜입니다';
+    warn.className = 'valid-warn show expired';
+  } else if (diff <= 3) {
+    warn.textContent = `⚠ ${diff === 0 ? '오늘 만료' : diff + '일 후 만료'}`;
+    warn.className = 'valid-warn show soon';
+  } else {
+    warn.className = 'valid-warn';
+  }
+}
+
+/* ── 숫자 콤마 포맷 ── */
+function fmtNum(n) { return Number(n).toLocaleString('ko-KR'); }
+function fmt(n) { return fmtNum(n) + '원'; }
+
+/* ── 소계 계산 ── */
+function getSubtotal() {
+  return items.reduce((s, i) => s + (i.qty * i.price), 0);
+}
+
+/* ── 할인 계산 ── */
+function getDiscount(subtotal) {
+  const val = parseFloat(document.getElementById('discountVal').value) || 0;
+  const type = document.getElementById('discountType').value;
+  if (type === 'percent') return Math.round(subtotal * val / 100);
+  return Math.min(val, subtotal);
+}
+
+function updateDiscountDisplay() {
+  const sub = getSubtotal();
+  const disc = getDiscount(sub);
+  const el = document.getElementById('discountResult');
+  el.textContent = disc > 0 ? `− ${fmt(disc)}` : '-';
+}
+
+/* ── 항목 렌더 ── */
+function renderItems() {
+  const el = document.getElementById('items');
+  el.innerHTML = items.map((item, i) => {
+    const lineTotal = item.qty * item.price;
+    return `
+    <div class="item-row">
+      <input value="${escHtml(item.name)}" placeholder="예) 로고 디자인"
+        oninput="items[${i}].name=this.value" />
+      <input type="number" value="${item.qty}" min="1" style="text-align:center;"
+        oninput="items[${i}].qty=parseInt(this.value)||1; renderItems(); updateDiscountDisplay();" />
+      <input type="text" value="${item.price > 0 ? fmtNum(item.price) : ''}"
+        placeholder="0" style="text-align:right;"
+        oninput="handlePriceInput(this, ${i})"
+        onfocus="this.value=items[${i}].price>0?String(items[${i}].price):'';"
+        onblur="this.value=items[${i}].price>0?fmtNum(items[${i}].price):'';" />
+      <div class="price-display">${lineTotal > 0 ? fmtNum(lineTotal) : '-'}</div>
+      <button class="del-btn" onclick="removeItem(${i})">×</button>
+    </div>`;
+  }).join('');
+  updateDiscountDisplay();
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function handlePriceInput(el, i) {
+  const raw = el.value.replace(/,/g, '');
+  const n = parseInt(raw) || 0;
+  items[i].price = n;
+  renderItems();
+  // 포커스 유지를 위해 직접 값 업데이트
+  const inputs = document.querySelectorAll('.item-row input[type="text"]');
+  if (inputs[i]) {
+    inputs[i].value = raw; // 입력 중에는 raw 유지
+    inputs[i].focus();
+  }
+}
+
+function addItem() {
+  items.push({ name: '', qty: 1, price: 0 });
+  renderItems();
+}
+
+function removeItem(i) {
+  if (items.length === 1) return;
+  items.splice(i, 1);
+  renderItems();
+}
+
+/* ── 견적서 번호 자동 생성 ── */
+function genEstNo() {
+  const y = new Date().getFullYear();
+  const m = String(new Date().getMonth() + 1).padStart(2, '0');
+  const r = String(Math.floor(Math.random() * 900) + 100);
+  return `${y}${m}-${r}`;
+}
+
+/* ── 견적서 생성 ── */
+function generate() {
+  const myName = document.getElementById('myName').value.trim() || '(업체명 없음)';
+  const myBizNo = document.getElementById('myBizNo').value.trim();
+  const myPhone = document.getElementById('myPhone').value.trim();
+  const myEmail = document.getElementById('myEmail').value.trim();
+  const myBank = document.getElementById('myBank').value.trim();
+  const myAccountName = document.getElementById('myAccountName').value.trim();
+  const clientName = document.getElementById('clientName').value.trim() || '(고객사 없음)';
+  const clientContact = document.getElementById('clientContact').value.trim();
+  const estNo = document.getElementById('estNo').value.trim() || genEstNo();
+  const estDate = document.getElementById('estDate').value || '-';
+  const validDate = document.getElementById('validDate').value || '-';
+  const note = document.getElementById('note').value.trim();
+
+  const rows = items.filter(i => i.name).map(i => ({ ...i, total: i.qty * i.price }));
+  if (rows.length === 0) { alert('항목을 하나 이상 입력해주세요'); return; }
+
+  /* 금액 계산 */
+  const subtotal = rows.reduce((s, r) => s + r.total, 0);
+  const discount = getDiscount(subtotal);
+  const afterDiscount = subtotal - discount;
+
+  let vat = 0, vatLabel = '', grand = 0;
+  if (vatMode === '10') {
+    vat = Math.round(afterDiscount * 0.1);
+    vatLabel = '부가세 (10%)';
+    grand = afterDiscount + vat;
+  } else if (vatMode === '0') {
+    vatLabel = '부가세 (영세율 0%)';
+    grand = afterDiscount;
+  } else if (vatMode === 'exempt') {
+    vatLabel = '부가세 (면세)';
+    grand = afterDiscount;
+  } else if (vatMode === 'included') {
+    vat = Math.round(afterDiscount / 11);
+    vatLabel = '부가세 포함';
+    grand = afterDiscount;
+  }
+
+  /* 유효기간 상태 */
+  let validClass = '', validSuffix = '';
+  if (validDate !== '-') {
+    const diff = Math.ceil((new Date(validDate) - new Date()) / 86400000);
+    if (diff < 0) { validClass = 'warn'; validSuffix = ' (만료)'; }
+    else if (diff <= 3) { validClass = 'soon'; validSuffix = ` (${diff === 0 ? '오늘까지' : diff + '일 남음'})`; }
+  }
+
+  /* 공급자 상세 */
+  let myDetail = '';
+  if (myBizNo) myDetail += `사업자번호: ${myBizNo}<br>`;
+  if (myPhone) myDetail += `연락처: ${myPhone}<br>`;
+  if (myEmail) myDetail += `이메일: ${myEmail}<br>`;
+  if (myBank) myDetail += `계좌번호: ${myBank}${myAccountName ? ' (' + myAccountName + ')' : ''}<br>`;
+
+  /* 수취인 상세 */
+  let clientDetail = '';
+  if (clientContact) clientDetail += `담당: ${clientContact}`;
+
+  /* 테이블 행 */
+  const tableRows = rows.map(r => `
+    <tr>
+      <td>${escHtml(r.name)}</td>
+      <td class="num">${fmtNum(r.qty)}</td>
+      <td class="num">${fmt(r.price)}</td>
+      <td class="num">${fmt(r.total)}</td>
+    </tr>`).join('');
+
+  /* 할인 행 */
+  const discountRow = discount > 0 ? `
+    <tr class="discount-line">
+      <td colspan="3">할인</td>
+      <td class="num">− ${fmt(discount)}</td>
+    </tr>` : '';
+
+  /* 합계 박스 */
+  const vatRow = (vatMode === '0' || vatMode === 'exempt')
+    ? `<div class="est-summary-row"><span class="est-summary-label">${vatLabel}</span><span>해당없음</span></div>`
+    : `<div class="est-summary-row"><span class="est-summary-label">${vatLabel}</span><span>${vat > 0 ? fmt(vat) : '포함'}</span></div>`;
+
+  const discountSummary = discount > 0
+    ? `<div class="est-summary-row"><span class="est-summary-label">할인</span><span style="color:#a32d2d;">− ${fmt(discount)}</span></div>` : '';
+
+  /* 비고 */
+  const noteHTML = note
+    ? `<div class="est-note"><strong style="color:#1a1917;">비고</strong><br>${escHtml(note).replace(/\n/g, '<br>')}</div>` : '';
+
+  /* 렌더 */
+  document.getElementById('preview').className = 'preview';
+  document.getElementById('preview').innerHTML = `
+    <div class="est-header">
+      <div>
+        <div class="est-title">견 적 서</div>
+        <div class="est-no">No. ${estNo}</div>
+      </div>
+      <div class="est-stamp">견&nbsp;적<br>확인</div>
+    </div>
+
+    <div class="est-parties">
+      <div class="est-party">
+        <div class="est-party-role">공급자</div>
+        <div class="est-party-name">${escHtml(myName)}</div>
+        <div class="est-party-detail">${myDetail || '&nbsp;'}</div>
+      </div>
+      <div class="est-party">
+        <div class="est-party-role">공급받는자</div>
+        <div class="est-party-name">${escHtml(clientName)}</div>
+        <div class="est-party-detail">${clientDetail || '&nbsp;'}</div>
+      </div>
+    </div>
+
+    <div class="est-meta">
+      <div class="est-meta-item">
+        <div class="est-meta-label">견적일</div>
+        <div class="est-meta-value">${estDate}</div>
+      </div>
+      <div class="est-meta-item">
+        <div class="est-meta-label">유효기간</div>
+        <div class="est-meta-value ${validClass}">${validDate}${validSuffix}</div>
+      </div>
+      <div class="est-meta-item">
+        <div class="est-meta-label">총 금액</div>
+        <div class="est-meta-value">${fmt(grand)}</div>
+      </div>
+    </div>
+
+    <table class="est-table">
+      <thead>
+        <tr>
+          <th>품목</th>
+          <th style="text-align:right">수량</th>
+          <th style="text-align:right">단가</th>
+          <th style="text-align:right">금액</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableRows}
+        ${discountRow}
+      </tbody>
+    </table>
+
+    <div class="est-summary">
+      <div class="est-summary-box">
+        <div class="est-summary-row"><span class="est-summary-label">공급가액</span><span>${fmt(subtotal)}</span></div>
+        ${discountSummary}
+        ${vatRow}
+        <div class="est-summary-row est-summary-total"><span class="est-summary-label">합계</span><span>${fmt(grand)}</span></div>
+      </div>
+    </div>
+
+    ${noteHTML}
+
+    <div class="est-footer">
+      <div style="font-size:12px; color:#bbb;">위와 같이 견적서를 제출합니다</div>
+      <div class="est-sign">
+        <div class="est-sign-line"></div>
+        <div class="est-sign-label">${escHtml(myName)} (서명)</div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('downloadBtn').style.display = 'inline-block';
+  document.getElementById('pdfGuide').className = 'pdf-guide show';
+  document.getElementById('preview').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ── 초기화 ── */
+function resetForm() {
+  ['myName','myBizNo','myPhone','myEmail','myBank','myAccountName','clientName','clientContact','estNo','note'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('discountVal').value = '0';
+  document.getElementById('discountType').value = 'amount';
+  document.getElementById('discountResult').textContent = '-';
+  document.getElementById('validWarn').className = 'valid-warn';
+  vatMode = '10';
+  document.querySelectorAll('.vat-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+  items = [{ name: '', qty: 1, price: 0 }];
+  renderItems();
+  document.getElementById('preview').className = 'preview empty';
+  document.getElementById('preview').innerHTML = '견적서가 여기에 표시됩니다';
+  document.getElementById('downloadBtn').style.display = 'none';
+  document.getElementById('pdfGuide').className = 'pdf-guide';
+  // 날짜 재설정
+  const today = new Date().toISOString().split('T')[0];
+  const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  document.getElementById('estDate').value = today;
+  document.getElementById('validDate').value = nextMonth;
+  document.getElementById('estNo').value = genEstNo();
+}
+
+/* ── 초기 실행 ── */
+const today = new Date().toISOString().split('T')[0];
+const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+document.getElementById('estDate').value = today;
+document.getElementById('validDate').value = nextMonth;
+document.getElementById('estNo').value = genEstNo();
+renderItems();
+</script>
+</body>
+</html>

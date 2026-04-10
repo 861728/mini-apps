@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>구인공고 생성기</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f8f7f5; font-family: sans-serif; padding: 3rem 1.5rem; color: #1a1917; }
+  .wrap { max-width: 600px; margin: 0 auto; }
+  .back { font-size: 13px; color: #999; text-decoration: none; display: inline-block; margin-bottom: 2rem; }
+  .back:hover { color: #1a1917; }
+  h1 { font-size: 22px; font-weight: 500; margin-bottom: 6px; }
+  .sub { font-size: 14px; color: #888; margin-bottom: 2rem; }
+
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12px; color: #888; margin-bottom: 5px; }
+  .field input, .field select {
+    width: 100%; padding: 9px 12px; font-size: 14px;
+    border: 1px solid #ddd; border-radius: 8px;
+    background: #fff; color: #1a1917; font-family: sans-serif;
+  }
+  .field input:focus, .field select:focus { outline: none; border-color: #aaa; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .section-label { font-size: 11px; color: #bbb; letter-spacing: 0.05em; text-transform: uppercase; margin: 1.25rem 0 10px; }
+
+  .btns { display: flex; gap: 10px; margin-top: 16px; align-items: center; flex-wrap: wrap; }
+  .btn-primary {
+    font-size: 14px; padding: 9px 20px;
+    background: #1a1917; color: #fff;
+    border: none; border-radius: 8px; cursor: pointer;
+  }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary {
+    font-size: 14px; padding: 9px 20px;
+    background: #fff; color: #1a1917;
+    border: 1px solid #ddd; border-radius: 8px; cursor: pointer;
+  }
+
+  hr { border: none; border-top: 1px solid #eee; margin: 1.5rem 0; }
+  .result-label { font-size: 12px; color: #aaa; margin-bottom: 8px; }
+  .result-box {
+    background: #fff; border: 1px solid #eee; border-radius: 10px;
+    padding: 14px 16px; font-size: 15px; line-height: 1.8;
+    min-height: 80px; white-space: pre-wrap; color: #1a1917;
+  }
+  .result-box.empty { color: #bbb; }
+
+  .tag-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tag {
+    font-size: 12px; padding: 5px 12px; border-radius: 99px;
+    border: 1px solid #ddd; background: #fff; cursor: pointer; color: #666;
+    transition: all .1s;
+  }
+  .tag.active { background: #1a1917; color: #fff; border-color: #1a1917; }
+
+  .debug {
+    margin-top: 10px; font-size: 12px; font-family: monospace;
+    background: #f0f0f0; padding: 8px 12px; border-radius: 8px;
+    color: #666; white-space: pre-wrap; display: none;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="myapps.html" class="back">← 목록으로</a>
+  <h1>구인공고 생성기</h1>
+  <p class="sub">정보를 입력하면 알바 모집글을 자동으로 작성해드려요</p>
+
+  <div class="section-label">업장 정보</div>
+  <div class="row2">
+    <div class="field">
+      <label>업종</label>
+      <select id="bizType">
+        <option>카페</option>
+        <option>식당/음식점</option>
+        <option>편의점</option>
+        <option>마트/슈퍼</option>
+        <option>미용실</option>
+        <option>헬스장</option>
+        <option>학원</option>
+        <option>기타</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>업장명 (선택)</label>
+      <input id="bizName" placeholder="예) 행복 카페" />
+    </div>
+  </div>
+
+  <div class="section-label">근무 조건</div>
+  <div class="row2">
+    <div class="field">
+      <label>시급</label>
+      <input id="wage" type="number" placeholder="예) 12000" value="10320" />
+    </div>
+    <div class="field">
+      <label>근무 형태</label>
+      <select id="workType">
+        <option>주말 포함 주 5일</option>
+        <option>주말 제외 주 5일</option>
+        <option>주말만</option>
+        <option>주 3~4일</option>
+        <option>협의 가능</option>
+      </select>
+    </div>
+  </div>
+  <div class="row2">
+    <div class="field">
+      <label>근무 시간</label>
+      <input id="workTime" placeholder="예) 오전 9시 ~ 오후 6시" />
+    </div>
+    <div class="field">
+      <label>근무 기간</label>
+      <select id="period">
+        <option>단기 (1~3개월)</option>
+        <option>장기 (6개월 이상)</option>
+        <option>무기한</option>
+        <option>협의 가능</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="section-label">우대 조건 (복수 선택 가능)</div>
+  <div class="tag-row" id="tags">
+    <div class="tag" onclick="toggleTag(this)">성실한 분</div>
+    <div class="tag" onclick="toggleTag(this)">친절한 분</div>
+    <div class="tag" onclick="toggleTag(this)">경험자 우대</div>
+    <div class="tag" onclick="toggleTag(this)">초보 환영</div>
+    <div class="tag" onclick="toggleTag(this)">빠른 시작 가능한 분</div>
+    <div class="tag" onclick="toggleTag(this)">장기 근무 가능한 분</div>
+    <div class="tag" onclick="toggleTag(this)">성별 무관</div>
+    <div class="tag" onclick="toggleTag(this)">나이 무관</div>
+  </div>
+
+  <div class="section-label">게시 채널</div>
+  <div class="field">
+    <label>어디에 올릴 건가요?</label>
+    <select id="channel">
+      <option>당근마켓</option>
+      <option>알바천국/알바몬</option>
+      <option>인스타그램</option>
+      <option>공통 (범용)</option>
+    </select>
+  </div>
+
+  <div class="btns">
+    <button class="btn-primary" id="genBtn" onclick="generate()">공고 생성</button>
+    <button class="btn-secondary" onclick="copyResult()">복사</button>
+  </div>
+
+  <div class="debug" id="debug"></div>
+
+  <hr>
+  <div class="result-label">생성된 공고</div>
+  <div class="result-box empty" id="result">공고가 여기에 표시됩니다</div>
+</div>
+
+<script>
+// ── 채널별 프롬프트 지침 ──────────────────────────────────────────
+const CHANNEL_GUIDE = {
+  '당근마켓': {
+    tone: '동네 이웃에게 말하듯 친근하고 따뜻하게. 딱딱한 표현 없이 구어체로.',
+    format: '조건마다 줄바꿈. 이모지를 줄 앞에 붙여 구분 (예: 🕐 근무시간 / 💰 시급 / 📍 위치). 섹션 헤더 없이 자연스럽게. 마지막 한두 줄은 한 마디 인사 + 지원 안내.',
+    must: '"댓글이나 채팅으로 연락 주세요 😊" 형태로 마무리. 이모지는 줄당 하나씩만.',
+    avoid: '[근무조건] 같은 딱딱한 섹션 헤더, 불렛 기호(•), 줄글로 이어쓰기.',
+  },
+  '알바천국/알바몬': {
+    tone: '신뢰감 있는 공식 톤. 구직자가 조건을 한눈에 파악할 수 있도록.',
+    format: '불렛(•) 형식으로 조건 나열. [모집내용] [근무조건] [우대사항] [지원방법] 섹션 순서로 구성. 각 항목은 "• 시급: OO원" 형태로.',
+    must: '시급, 근무 시간, 근무 요일/형태, 근무 기간을 불렛으로 빠짐없이 명시. 지원 방법 안내로 마무리.',
+    avoid: '이모지, 지나치게 감성적인 표현.',
+  },
+  '인스타그램': {
+    tone: '감각적이고 간결하게. 브랜드 감성이 느껴지도록.',
+    format: '핵심 조건 3~5줄로 짧게 → 한 줄 공백 → 해시태그 8~12개. 이모지로 시각적 리듬 추가.',
+    must: '지원 방법은 반드시 "DM으로 연락 주세요 📩" 형태로 마무리. 해시태그는 #알바 #알바구함 #단기알바 #장기알바 등 실제 검색어 위주로, 업종 해시태그도 포함.',
+    avoid: '긴 문단, 딱딱한 항목 나열, 전화번호 직접 기재.',
+  },
+  '공통 (범용)': {
+    tone: '자연스럽고 무난하게. 어느 채널에 올려도 어색하지 않도록.',
+    format: '300자 내외. 핵심 조건 → 우대사항 → 지원 안내 순서.',
+    must: '주요 조건(시급, 근무형태, 기간)은 반드시 포함.',
+    avoid: '특정 채널 전용 형식(해시태그, 섹션 헤더 등).',
+  },
+};
+
+function toggleTag(el) {
+  el.classList.toggle('active');
+}
+
+function getActiveTags() {
+  return [...document.querySelectorAll('.tag.active')].map(t => t.textContent);
+}
+
+function buildPrompt({ bizInfo, wage, workType, workTime, period, tags, channel }) {
+  const guide = CHANNEL_GUIDE[channel] || CHANNEL_GUIDE['공통 (범용)'];
+  const tagText = tags.length > 0 ? `우대/특이사항: ${tags.join(', ')}` : '';
+  const timeText = workTime ? `근무 시간: ${workTime}` : '';
+
+  return `당신은 소상공인 구인공고 작성 전문가입니다.
+아래 [근무 정보]와 [채널 지침]을 모두 반영해서 공고문을 작성하세요.
+공고 글만 출력하세요. 마크다운 기호(**, ## 등) 없이 텍스트로만 작성하세요.
+
+[근무 정보]
+업종: ${bizInfo}
+시급: ${Number(wage).toLocaleString('ko-KR')}원
+근무 형태: ${workType}
+${timeText}
+근무 기간: ${period}
+${tagText}
+
+[채널 지침 — ${channel}]
+톤: ${guide.tone}
+형식: ${guide.format}
+반드시 포함: ${guide.must}
+피할 것: ${guide.avoid}`;
+}
+
+async function generate() {
+  const bizType = document.getElementById('bizType').value;
+  const bizName = document.getElementById('bizName').value.trim();
+  const wage = document.getElementById('wage').value;
+  const workType = document.getElementById('workType').value;
+  const workTime = document.getElementById('workTime').value.trim();
+  const period = document.getElementById('period').value;
+  const channel = document.getElementById('channel').value;
+  const tags = getActiveTags();
+
+  const resultEl = document.getElementById('result');
+  const debugEl = document.getElementById('debug');
+  const btn = document.getElementById('genBtn');
+
+  btn.disabled = true;
+  btn.textContent = '생성 중...';
+  resultEl.className = 'result-box empty';
+  resultEl.textContent = '생성 중...';
+  debugEl.style.display = 'none';
+
+  const bizInfo = bizName ? `${bizName} (${bizType})` : bizType;
+  const prompt = buildPrompt({ bizInfo, wage, workType, workTime, period, tags, channel });
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      debugEl.style.display = 'block';
+      debugEl.textContent = `status: ${res.status}\n${err.slice(0, 200)}`;
+      resultEl.textContent = 'API 오류가 발생했어요.';
+      return;
+    }
+
+    const data = await res.json();
+    const text = data.content?.map(i => i.text || '').join('') || '응답이 비어있어요';
+    resultEl.className = 'result-box';
+    resultEl.textContent = text;
+  } catch(e) {
+    debugEl.style.display = 'block';
+    debugEl.textContent = `catch error: ${e.message}`;
+    resultEl.textContent = '네트워크 오류가 발생했어요.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '공고 생성';
+  }
+}
+
+function copyResult() {
+  const text = document.getElementById('result').textContent;
+  if (!text || text === '공고가 여기에 표시됩니다') return;
+  navigator.clipboard.writeText(text).then(() => alert('복사됐어요!'));
+}
+</script>
+</body>
+</html>

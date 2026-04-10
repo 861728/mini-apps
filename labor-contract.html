@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>근로계약서 생성기</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #f8f7f5; font-family: sans-serif; color: #1a1917; padding: 3rem 1.5rem; }
+.wrap { max-width: 640px; margin: 0 auto; }
+.back { font-size: 13px; color: #999; text-decoration: none; display: inline-block; margin-bottom: 2rem; }
+.back:hover { color: #1a1917; }
+h1 { font-size: 22px; font-weight: 500; margin-bottom: 6px; }
+.sub { font-size: 14px; color: #888; margin-bottom: 4px; }
+.sub-warn { font-size: 12px; color: #c0392b; margin-bottom: 2rem; }
+
+.section { margin-bottom: 1.5rem; }
+.section-title { font-size: 12px; color: #aaa; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 13px; color: #555; margin-bottom: 4px; font-weight: 500; }
+.field input, .field select {
+  width: 100%; padding: 9px 12px; font-size: 14px;
+  border: 1px solid #ddd; border-radius: 8px;
+  background: #fff; color: #1a1917; font-family: sans-serif;
+}
+.field input:focus, .field select:focus { outline: none; border-color: #aaa; }
+.field .hint { font-size: 11px; color: #bbb; margin-top: 4px; }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+.days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 6px; }
+.day-btn { padding: 8px 4px; font-size: 12px; text-align: center; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; color: #888; transition: all 0.1s; }
+.day-btn.active { background: #1a1917; color: #fff; border-color: #1a1917; }
+.day-btn.sun { color: #e55; }
+.day-btn.sun.active { background: #e55; border-color: #e55; color: #fff; }
+.day-btn.sat { color: #55a; }
+.day-btn.sat.active { background: #55a; border-color: #55a; color: #fff; }
+
+.alert { border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 12px; display: none; }
+.alert.show { display: block; }
+.alert-warn { background: #fff3cd; border: 1px solid #f0d080; color: #7d5a00; }
+.alert-ok { background: #d8f3dc; border: 1px solid #a8d8b8; color: #2d6a4f; }
+.alert-danger { background: #fde8e8; border: 1px solid #f5c0c0; color: #a32d2d; }
+
+.btns { display: flex; gap: 10px; margin-top: 16px; }
+.btn-primary { font-size: 14px; padding: 11px 24px; background: #1a1917; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; }
+.btn-primary:hover { opacity: 0.85; }
+.btn-secondary { font-size: 14px; padding: 11px 24px; background: #fff; color: #1a1917; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; }
+
+hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+
+/* ── 계약서 미리보기 ── */
+.preview-label { font-size: 12px; color: #aaa; margin-bottom: 12px; }
+#preview { display: none; }
+#preview.show { display: block; }
+
+/* ── 계약서 본문 스타일 (표준양식 기준) ── */
+.contract {
+  background: #fff; border: 1px solid #ccc;
+  padding: 2.5rem 2.5rem; font-size: 13.5px; line-height: 1.85; color: #1a1917;
+}
+.contract-title {
+  font-size: 26px; font-weight: 700; text-align: center;
+  margin-bottom: 4px; letter-spacing: 0.2em;
+}
+.contract-subtitle { font-size: 11px; color: #888; text-align: center; margin-bottom: 1.75rem; }
+
+/* 당사자 표 */
+.party-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 13px; }
+.party-table td { padding: 6px 10px; border: 1px solid #bbb; vertical-align: middle; }
+.party-table .th { background: #f0ede8; font-weight: 600; width: 22%; white-space: nowrap; }
+.party-table .val { width: 28%; }
+
+.contract-preamble { font-size: 13px; margin-bottom: 1.5rem; line-height: 1.8; }
+
+/* 조항 */
+.clause { margin-bottom: 1.2rem; }
+.clause-title { font-weight: 700; font-size: 13.5px; margin-bottom: 5px; }
+.clause-body { padding-left: 1.1rem; }
+.clause-body li { list-style: none; position: relative; margin-bottom: 3px; font-size: 13px; }
+.clause-body li::before { content: '①'; position: absolute; left: -1.2rem; color: #555; font-size: 12px; }
+.clause-body li:nth-child(2)::before { content: '②'; }
+.clause-body li:nth-child(3)::before { content: '③'; }
+.clause-body li:nth-child(4)::before { content: '④'; }
+.clause-body li:nth-child(5)::before { content: '⑤'; }
+.clause-body li:nth-child(6)::before { content: '⑥'; }
+.clause-body li.plain::before { content: '·'; }
+.clause-note { font-size: 11.5px; color: #777; margin-top: 4px; padding-left: 0.2rem; }
+
+/* 임금 명세 표 */
+.wage-table { width: 100%; border-collapse: collapse; margin: 6px 0 4px; font-size: 12.5px; }
+.wage-table th { background: #f0ede8; padding: 5px 8px; border: 1px solid #bbb; font-weight: 600; text-align: center; }
+.wage-table td { padding: 5px 8px; border: 1px solid #bbb; text-align: center; }
+
+/* 서명란 */
+.sign-section { margin-top: 2rem; padding-top: 1.5rem; border-top: 2px solid #1a1917; }
+.sign-date { text-align: center; font-size: 14px; font-weight: 500; margin-bottom: 1.5rem; }
+.sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+.sign-box-title { font-size: 13px; font-weight: 700; margin-bottom: 6px; border-bottom: 1px solid #aaa; padding-bottom: 4px; }
+.sign-box-line { border-bottom: 1px solid #888; margin-bottom: 8px; padding-bottom: 30px; }
+.sign-box-info { font-size: 12px; color: #444; line-height: 2; }
+
+.print-btn {
+  margin-top: 1rem; font-size: 14px; padding: 10px 22px;
+  background: #1a1917; color: #fff; border: none;
+  border-radius: 8px; cursor: pointer; display: none;
+}
+
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  background: #1a1917; color: #fff; font-size: 13px;
+  padding: 10px 20px; border-radius: 99px;
+  opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999;
+  white-space: nowrap;
+}
+
+/* 인쇄 */
+@media print {
+  body { background: #fff; padding: 0; }
+  .wrap > *:not(.preview-wrap) { display: none !important; }
+  .preview-label, .print-btn { display: none !important; }
+  .contract { border: none; padding: 1.5cm; }
+  #preview { display: block !important; }
+}
+
+@media (max-width: 540px) {
+  .row2, .row3 { grid-template-columns: 1fr; }
+  .sign-grid { grid-template-columns: 1fr; }
+  .party-table .th, .party-table .val { width: auto; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="myapps.html" class="back">← 목록으로</a>
+  <h1>근로계약서 생성기</h1>
+  <p class="sub">고용노동부 최신 표준 양식 기준으로 자동 생성해드려요</p>
+  <p class="sub-warn">⚠ 근로기준법 제17조 위반 시 500만원 이하 벌금 · 이 도구는 참고용이며 법적 책임은 사용자에게 있습니다</p>
+
+  <!-- 1. 사업주 정보 -->
+  <div class="section">
+    <div class="section-title">사업주 정보</div>
+    <div class="row2">
+      <div class="field">
+        <label>사업체명 (상호)</label>
+        <input type="text" id="bizName" placeholder="예) 행복 카페" />
+      </div>
+      <div class="field">
+        <label>대표자 성명</label>
+        <input type="text" id="ownerName" placeholder="예) 홍길동" />
+      </div>
+    </div>
+    <div class="field">
+      <label>사업장 주소</label>
+      <input type="text" id="bizAddr" placeholder="예) 서울시 마포구 합정동 123" />
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>사업장 전화번호</label>
+        <input type="tel" id="bizPhone" placeholder="예) 02-1234-5678" />
+      </div>
+      <div class="field">
+        <label>사업장 규모</label>
+        <select id="bizSize" onchange="syncOvertimeField()">
+          <option value="over5">5인 이상 사업장</option>
+          <option value="under5">5인 미만 사업장</option>
+        </select>
+        <div class="hint">5인 미만: 연장·야간·휴일 가산수당 의무 없음</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 근로자 정보 -->
+  <div class="section">
+    <div class="section-title">근로자 정보</div>
+    <div class="row2">
+      <div class="field">
+        <label>성명</label>
+        <input type="text" id="workerName" placeholder="예) 김알바" />
+      </div>
+      <div class="field">
+        <label>생년월일</label>
+        <input type="date" id="workerBirth" />
+      </div>
+    </div>
+    <div class="field">
+      <label>주소</label>
+      <input type="text" id="workerAddr" placeholder="예) 서울시 강남구 역삼동 456" />
+    </div>
+    <div class="field">
+      <label>연락처</label>
+      <input type="tel" id="workerPhone" placeholder="예) 010-1234-5678" />
+    </div>
+  </div>
+
+  <!-- 3. 계약 기간 -->
+  <div class="section">
+    <div class="section-title">근로계약기간</div>
+    <div class="field">
+      <label>계약 유형</label>
+      <select id="contractType" onchange="toggleDates()">
+        <option value="unlimited">기간의 정함이 없음 (정규직)</option>
+        <option value="limited">기간의 정함이 있음 (계약직·아르바이트)</option>
+      </select>
+    </div>
+    <div id="date-fields" style="display:none;">
+      <div class="row2">
+        <div class="field">
+          <label>계약 시작일</label>
+          <input type="date" id="startDate" onchange="checkContractDuration()" />
+        </div>
+        <div class="field">
+          <label>계약 종료일</label>
+          <input type="date" id="endDate" onchange="checkContractDuration()" />
+          <div class="hint" id="durationWarn" style="display:none;color:#c0392b;">⚠ 계약기간이 2년을 초과합니다. 원칙적으로 기간제 근로자는 총 2년을 초과 사용할 수 없으며, 초과 시 무기계약직으로 전환됩니다 (기간제법 제4조).</div>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>근로 개시일</label>
+      <input type="date" id="workStart" />
+    </div>
+  </div>
+
+  <!-- 4. 근무 장소 및 업무 -->
+  <div class="section">
+    <div class="section-title">근무 장소 및 업무 내용</div>
+    <div class="row2">
+      <div class="field">
+        <label>근무 장소</label>
+        <input type="text" id="workplace" placeholder="예) 행복 카페 합정점" />
+      </div>
+      <div class="field">
+        <label>업무 내용</label>
+        <input type="text" id="jobDesc" placeholder="예) 카운터 및 음료 제조" />
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. 소정근로시간 -->
+  <div class="section">
+    <div class="section-title">소정근로시간</div>
+    <div class="row3">
+      <div class="field">
+        <label>시업 시각</label>
+        <input type="time" id="startTime" value="09:00" />
+      </div>
+      <div class="field">
+        <label>종업 시각</label>
+        <input type="time" id="endTime" value="18:00" />
+      </div>
+      <div class="field">
+        <label>휴게 시간</label>
+        <select id="breakTime">
+          <option value="30">30분</option>
+          <option value="60" selected>60분 (1시간)</option>
+          <option value="90">90분</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>근무 요일</label>
+      <div class="days-grid" id="daysGrid">
+        <div class="day-btn sun" data-day="일" onclick="toggleDay(this)">일</div>
+        <div class="day-btn active" data-day="월" onclick="toggleDay(this)">월</div>
+        <div class="day-btn active" data-day="화" onclick="toggleDay(this)">화</div>
+        <div class="day-btn active" data-day="수" onclick="toggleDay(this)">수</div>
+        <div class="day-btn active" data-day="목" onclick="toggleDay(this)">목</div>
+        <div class="day-btn active" data-day="금" onclick="toggleDay(this)">금</div>
+        <div class="day-btn sat" data-day="토" onclick="toggleDay(this)">토</div>
+      </div>
+      <div class="hint" style="margin-top:8px;">주휴수당 조건: 주 15시간 이상 개근</div>
+    </div>
+  </div>
+
+  <!-- 6. 임금 -->
+  <div class="section">
+    <div class="section-title">임금 (구성항목·계산방법·지급방법 — 법정 필수 기재)</div>
+    <div class="row2">
+      <div class="field">
+        <label>임금 산정 방식</label>
+        <select id="wageType" onchange="switchWage()">
+          <option value="hourly">시급제</option>
+          <option value="monthly">월급제</option>
+        </select>
+      </div>
+      <div class="field">
+        <label id="wageLbl">시급 (원)</label>
+        <input type="number" id="wage" value="10320" min="0" step="10" oninput="checkWage()" />
+        <div class="hint" id="wageHint">2026년 최저시급: 10,320원</div>
+      </div>
+    </div>
+    <div class="alert alert-danger" id="wageAlert"></div>
+    <div class="alert alert-ok" id="wageOk"></div>
+
+    <div class="row2">
+      <div class="field">
+        <label>주휴수당</label>
+        <select id="weeklyHoliday" onchange="toggleWeeklyHint()">
+          <option value="included">기본급에 포함</option>
+          <option value="separate">별도 지급 (주 15시간 이상 개근 시)</option>
+        </select>
+        <div class="hint" id="weeklyHint" style="display:none;color:#c0392b;">⚠ 포함 시 실질 시급이 최저임금을 충족하는지 별도 확인 필요. 시급 × (1 + 주휴시간/주소정근로시간) ≥ 10,320원 이어야 합니다.</div>
+      </div>
+      <div class="field" id="overtimeField">
+        <label>연장·야간·휴일 가산수당</label>
+        <select id="overtime">
+          <option value="apply">적용 (근로기준법 제56조)</option>
+          <option value="na">해당 없음 (5인 미만)</option>
+        </select>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>임금 지급일</label>
+        <select id="payDay">
+          <option value="매월 5일">매월 5일</option>
+          <option value="매월 10일" selected>매월 10일</option>
+          <option value="매월 15일">매월 15일</option>
+          <option value="매월 20일">매월 20일</option>
+          <option value="매월 25일">매월 25일</option>
+          <option value="매월 말일">매월 말일</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>지급 방법</label>
+        <select id="payMethod">
+          <option value="근로자 명의 계좌에 입금">계좌이체</option>
+          <option value="직접 현금 지급">현금 직접 지급</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. 퇴직급여 (신규 추가) -->
+  <div class="section">
+    <div class="section-title">퇴직급여</div>
+    <div class="field">
+      <label>퇴직급여제도</label>
+      <select id="severance">
+        <option value="applicable">퇴직금제도 적용 (계속근로 1년·주 15시간 이상 시 지급)</option>
+        <option value="pension_dc">확정기여형(DC) 퇴직연금 적용</option>
+        <option value="pension_db">확정급여형(DB) 퇴직연금 적용</option>
+        <option value="na">해당 없음 (계속근로 1년 미만 또는 주 15시간 미만)</option>
+      </select>
+      <div class="hint">계속근로 1년 이상 + 주 15시간 이상 근로자는 퇴직급여 지급 의무 발생 (근로자퇴직급여 보장법 제4조)</div>
+    </div>
+  </div>
+
+  <!-- 8. 사회보험 -->
+  <div class="section">
+    <div class="section-title">사회보험</div>
+    <div class="field">
+      <label>적용 보험</label>
+      <select id="insurance">
+        <option value="all">4대 보험 전체 (고용·산재·국민연금·건강보험)</option>
+        <option value="partial">일부 적용 (단시간·일용직 등)</option>
+        <option value="none">해당 없음 (초단시간 주 15시간 미만)</option>
+      </select>
+      <div class="hint">주 15시간 미만 초단시간 근로자는 고용보험·국민연금 적용 제외 (산재보험은 모든 근로자 적용)</div>
+    </div>
+  </div>
+
+  <!-- 9. 수습기간 (선택) -->
+  <div class="section">
+    <div class="section-title">수습기간 <span style="font-size:11px;color:#bbb;text-transform:none;letter-spacing:0;">(선택)</span></div>
+    <div class="field">
+      <label>수습기간 적용 여부</label>
+      <select id="probation" onchange="toggleProbation()">
+        <option value="none">적용 안 함</option>
+        <option value="apply">적용</option>
+      </select>
+      <div class="hint">1년 이상 근로계약 체결 시 수습기간(최대 3개월) 동안 최저임금의 90%까지 감액 가능 (최저임금법 제5조 제2항)<br>⚠ 단순노무직종(청소·경비·주방보조·배달 등)은 계약기간 무관하게 감액 불가</div>
+    </div>
+    <div id="probation-fields" style="display:none;">
+      <div class="row2">
+        <div class="field">
+          <label>수습기간</label>
+          <select id="probationPeriod">
+            <option value="1개월">1개월</option>
+            <option value="2개월">2개월</option>
+            <option value="3개월" selected>3개월</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>수습 중 임금 (최저임금의 %)</label>
+          <select id="probationRate">
+            <option value="100">100% (감액 없음)</option>
+            <option value="90" selected>90%</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. 계약서 작성일 -->
+  <div class="section">
+    <div class="section-title">작성일</div>
+    <div class="field">
+      <label>계약서 작성일</label>
+      <input type="date" id="contractDate" />
+    </div>
+  </div>
+
+  <div class="btns">
+    <button class="btn-primary" onclick="generate()">계약서 생성</button>
+    <button class="btn-secondary" onclick="resetAll()">초기화</button>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <hr>
+
+  <div class="preview-wrap">
+    <div class="preview-label">미리보기 — 출력 후 사업주·근로자 각 1부씩 서명 보관</div>
+    <div id="preview"></div>
+    <button class="print-btn" id="printBtn" onclick="window.print()">🖨 PDF 출력 / 인쇄</button>
+  </div>
+</div>
+
+<script>
+const MIN_HOURLY  = 10320;    // 2026년 최저시급
+const MIN_MONTHLY = 2156880;  // 2026년 최저월급 (10,320 × 209시간)
+let activeDays = new Set(['월','화','수','목','금']);
+
+/* ── 요일 토글 ── */
+function toggleDay(el) {
+  const d = el.dataset.day;
+  if (activeDays.has(d)) { activeDays.delete(d); el.classList.remove('active'); }
+  else { activeDays.add(d); el.classList.add('active'); }
+  checkWage();
+}
+
+/* ── 계약 유형 ── */
+function toggleDates() {
+  document.getElementById('date-fields').style.display =
+    document.getElementById('contractType').value === 'limited' ? 'block' : 'none';
+}
+
+/* ── 5인 미만 선택 시 가산수당 자동 연동 ── */
+function syncOvertimeField() {
+  const isUnder5 = document.getElementById('bizSize').value === 'under5';
+  const sel = document.getElementById('overtime');
+  if (isUnder5) sel.value = 'na';
+  else if (sel.value === 'na') sel.value = 'apply';
+}
+
+/* ── 계약직 2년 초과 경고 ── */
+function checkContractDuration() {
+  const s = document.getElementById('startDate').value;
+  const e = document.getElementById('endDate').value;
+  const warn = document.getElementById('durationWarn');
+  if (!s || !e) { warn.style.display = 'none'; return; }
+  const diffMs = new Date(e) - new Date(s);
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+  warn.style.display = diffDays > 730 ? 'block' : 'none';
+}
+
+/* ── 주휴수당 포함 힌트 ── */
+function toggleWeeklyHint() {
+  const included = document.getElementById('weeklyHoliday').value === 'included';
+  document.getElementById('weeklyHint').style.display = included ? 'block' : 'none';
+}
+
+/* ── 수습기간 토글 ── */
+function toggleProbation() {
+  const apply = document.getElementById('probation').value === 'apply';
+  document.getElementById('probation-fields').style.display = apply ? 'block' : 'none';
+}
+
+/* ── 임금 방식 전환 ── */
+function switchWage() {
+  const isHourly = document.getElementById('wageType').value === 'hourly';
+  document.getElementById('wageLbl').textContent = isHourly ? '시급 (원)' : '월급 (원)';
+  document.getElementById('wage').value = isHourly ? MIN_HOURLY : MIN_MONTHLY;
+  document.getElementById('wageHint').textContent = isHourly
+    ? '2026년 최저시급: 10,320원'
+    : '2026년 최저월급: 2,156,880원 (주 40시간·209시간 기준)';
+  checkWage();
+}
+
+/* ── 최저임금 검증 ── */
+function checkWage() {
+  const isHourly = document.getElementById('wageType').value === 'hourly';
+  const wage = parseInt(document.getElementById('wage').value) || 0;
+  const min  = isHourly ? MIN_HOURLY : MIN_MONTHLY;
+  const danger = document.getElementById('wageAlert');
+  const ok     = document.getElementById('wageOk');
+  if (wage > 0 && wage < min) {
+    danger.textContent = `⚠ 입력 ${isHourly ? '시급' : '월급'} ${wage.toLocaleString()}원은 2026년 최저임금(${min.toLocaleString()}원) 미달입니다. 최저임금법 위반입니다.`;
+    danger.className = 'alert alert-danger show';
+    ok.className = 'alert alert-ok';
+  } else if (wage >= min) {
+    ok.textContent = `✓ 2026년 최저임금(${min.toLocaleString()}원) 충족`;
+    ok.className = 'alert alert-ok show';
+    danger.className = 'alert alert-danger';
+  } else {
+    danger.className = 'alert alert-danger';
+    ok.className = 'alert alert-ok';
+  }
+}
+
+/* ── 유틸 ── */
+function v(id) { return document.getElementById(id).value.trim(); }
+function fmt(n) { return Number(n).toLocaleString('ko-KR'); }
+function calcWorkHours() {
+  const [sh, sm] = v('startTime').split(':').map(Number);
+  const [eh, em] = v('endTime').split(':').map(Number);
+  const br = parseInt(v('breakTime'));
+  return ((eh * 60 + em) - (sh * 60 + sm) - br) / 60;
+}
+function timeStr(t) {
+  const [h, m] = t.split(':');
+  return `${h}시 ${m}분`;
+}
+function fmtDate(d) {
+  if (!d) return '　　　　　';
+  const [y, mo, day] = d.split('-');
+  return `${y}년 ${mo}월 ${day}일`;
+}
+
+/* ── 계약서 생성 ── */
+function generate() {
+  const required = [
+    ['bizName',    '사업체명'],
+    ['ownerName',  '대표자 성명'],
+    ['workerName', '근로자 성명'],
+    ['workStart',  '근로 개시일'],
+    ['workplace',  '근무 장소'],
+    ['jobDesc',    '업무 내용'],
+  ];
+  for (const [id, label] of required) {
+    if (!document.getElementById(id).value.trim()) {
+      alert(`"${label}"을(를) 입력해주세요.`);
+      document.getElementById(id).focus();
+      return;
+    }
+  }
+  if (activeDays.size === 0) { alert('근무 요일을 선택해주세요.'); return; }
+
+  const bizName      = v('bizName');
+  const ownerName    = v('ownerName');
+  const bizAddr      = v('bizAddr')  || '(주소 미입력)';
+  const bizPhone     = v('bizPhone') || '';
+  const bizSize      = v('bizSize');
+  const workerName   = v('workerName');
+  const workerBirth  = v('workerBirth');
+  const workerAddr   = v('workerAddr')  || '(주소 미입력)';
+  const workerPhone  = v('workerPhone') || '';
+  const cType        = v('contractType');
+  const startDate    = v('startDate');
+  const endDate      = v('endDate');
+  const workStart    = v('workStart');
+  const workplace    = v('workplace');
+  const jobDesc      = v('jobDesc');
+  const startTime    = v('startTime');
+  const endTime      = v('endTime');
+  const breakMin     = v('breakTime');
+  const wageType     = v('wageType');
+  const wage         = parseInt(v('wage')) || 0;
+  const weeklyH      = v('weeklyHoliday');
+  const overtime     = v('overtime');
+  const payDay       = v('payDay');
+  const payMethod    = v('payMethod');
+  const severance       = v('severance');
+  const insurance       = v('insurance');
+  const probation       = v('probation');
+  const probationPeriod = probation === 'apply' ? v('probationPeriod') : '';
+  const probationRate   = probation === 'apply' ? v('probationRate') : '';
+  const contractDate    = v('contractDate') || new Date().toISOString().split('T')[0];
+
+  const workHoursPerDay = calcWorkHours();
+  if (workHoursPerDay <= 0) {
+    alert('종업 시각이 시업 시각보다 이르거나 휴게 시간이 근무 시간을 초과합니다. 시간을 확인해주세요.');
+    return;
+  }
+  const DAY_ORDER = ['일','월','화','수','목','금','토'];
+  const workDaysList = DAY_ORDER.filter(d => activeDays.has(d)).join('·');
+  const weeklyHours     = (workHoursPerDay * activeDays.size).toFixed(1);
+  const isOver5         = bizSize === 'over5';
+  const isHourly        = wageType === 'hourly';
+
+  /* 계약기간 문구 */
+  let periodText = '';
+  if (cType === 'limited') {
+    periodText = `${fmtDate(startDate)} ~ ${fmtDate(endDate)}`;
+  } else {
+    periodText = `${fmtDate(workStart)}부터 (기간의 정함이 없음)`;
+  }
+
+  /* 임금 문구 */
+  const wageLabel   = isHourly ? '시급' : '월급';
+  const wageAmount  = `${fmt(wage)}원`;
+  const calcMethod  = isHourly
+    ? `시급 ${fmt(wage)}원 × 소정근로시간`
+    : `월 고정 ${fmt(wage)}원 (소정근로시간에 대한 대가)`;
+  const weeklyHolidayText = weeklyH === 'included'
+    ? '기본급에 포함 (주 15시간 이상 개근 시 지급)'
+    : '별도 지급 — (주 소정근로시간 ÷ 40) × 8 × 시급 (주 15시간 이상 개근 시)';
+
+  /* 연장·야간·휴일 수당 */
+  let overtimeText = '';
+  if (isOver5 && overtime === 'apply') {
+    overtimeText = '연장·야간·휴일 근로 시 통상임금의 50% 가산 지급 (근로기준법 제56조)';
+  } else if (!isOver5) {
+    overtimeText = '5인 미만 사업장으로 연장·야간·휴일 가산수당 적용 제외';
+  }
+
+  /* 연차 문구 — 차감 관계 명시 */
+  let annualLeaveText = '';
+  if (isOver5) {
+    annualLeaveText = `근로기준법 제60조에 따라 1년간 80% 이상 출근한 근로자에게 15일의 유급휴가를 부여한다.
+1년 미만 근로자에게는 1개월 개근 시 1일의 유급휴가를 부여하며, 해당 휴가는 이후 발생하는 연차유급휴가에서 차감한다 (근로기준법 제60조 제3항).`;
+  } else {
+    annualLeaveText = '5인 미만 사업장으로 법정 연차유급휴가 적용 제외. 단, 노사 간 별도 약정에 따라 부여할 수 있다.';
+  }
+
+  /* 퇴직급여 문구 */
+  const severanceMap = {
+    applicable: '퇴직금제도를 적용하며, 계속근로기간 1년에 대하여 30일분 이상의 평균임금을 퇴직금으로 지급한다 (근로자퇴직급여 보장법 제8조). 단, 계속근로기간 1년 미만이거나 4주 평균 주 소정근로시간 15시간 미만인 경우 지급 의무 없음.',
+    pension_dc:  '확정기여형(DC) 퇴직연금제도를 적용하며, 사용자는 매년 근로자의 연간 임금총액의 12분의 1 이상을 퇴직연금 계정에 납입한다 (근로자퇴직급여 보장법 제20조).',
+    pension_db:  '확정급여형(DB) 퇴직연금제도를 적용한다 (근로자퇴직급여 보장법 제13조).',
+    na:          '계속근로기간 1년 미만 또는 4주 평균 주 소정근로시간 15시간 미만으로 퇴직급여 지급 의무 해당 없음 (근로자퇴직급여 보장법 제4조 제1항 단서).',
+  };
+  const severanceText = severanceMap[severance] || '';
+
+  /* 사회보험 문구 */
+  const insuranceMap = {
+    all:     '고용보험·산업재해보상보험·국민연금·국민건강보험 (4대 보험 전부 적용)',
+    partial: '산업재해보상보험·고용보험 적용. 국민연금·건강보험은 근로조건에 따라 별도 확인 (단시간·일용직)',
+    none:    '주 15시간 미만 초단시간 근로자: 고용보험·국민연금 적용 제외. 산업재해보상보험은 적용.',
+  };
+  const insuranceText = insuranceMap[insurance] || '';
+
+  /* 수습기간 문구 */
+  let probationText = '';
+  if (probation === 'apply') {
+    const minWage = Math.round(MIN_HOURLY * parseInt(probationRate) / 100);
+    probationText = `수습기간을 ${probationPeriod}로 하며, 수습 중 임금은 통상 임금의 ${probationRate}%(시급 기준 ${minWage.toLocaleString()}원 이상)로 한다 (최저임금법 제5조 제2항). 단, 1년 미만 근로계약의 경우 수습 감액이 적용되지 않는다.`;
+  }
+
+  /* 임금명세서 교부 의무 문구 */
+  const payslipText = '사업주는 임금 지급 시마다 임금의 구성항목·계산방법·공제내역이 기재된 임금명세서를 근로자에게 교부한다 (근로기준법 제48조).';
+
+  const html = `
+<div class="contract">
+  <div class="contract-title">근 로 계 약 서</div>
+  <div class="contract-subtitle">고용노동부 표준 근로계약서 양식 기준 (근로기준법 제17조)</div>
+
+  <table class="party-table">
+    <tr>
+      <td class="th">사 업 체 명</td>
+      <td class="val">${bizName}</td>
+      <td class="th">대 표 자</td>
+      <td class="val">${ownerName}</td>
+    </tr>
+    <tr>
+      <td class="th">사업장 주소</td>
+      <td colspan="3">${bizAddr}${bizPhone ? ' (전화: ' + bizPhone + ')' : ''}</td>
+    </tr>
+    <tr>
+      <td class="th">근 로 자</td>
+      <td class="val">${workerName}</td>
+      <td class="th">생 년 월 일</td>
+      <td class="val">${workerBirth ? fmtDate(workerBirth) : '　　　　　'}</td>
+    </tr>
+    <tr>
+      <td class="th">근로자 주소</td>
+      <td colspan="3">${workerAddr}${workerPhone ? ' (전화: ' + workerPhone + ')' : ''}</td>
+    </tr>
+  </table>
+
+  <div class="contract-preamble">
+    <strong>${bizName}</strong>(이하 "사업주")과(와) <strong>${workerName}</strong>(이하 "근로자")은 다음과 같이 근로계약을 체결한다.
+  </div>
+
+  <div class="clause">
+    <div class="clause-title">제1조 (근로계약기간)</div>
+    <div class="clause-body">
+      <ul>
+        <li class="plain">${periodText}</li>
+        ${cType === 'limited' ? '<li class="plain" style="color:#777;font-size:12px;">※ 근로계약기간을 정하지 않는 경우에는 근로개시일만 기재</li>' : ''}
+        ${probationText ? `<li class="plain">수습기간: ${probationText}</li>` : ''}
+      </ul>
+    </div>
+  </div>
+
+  <div class="clause">
+    <div class="clause-title">제2조 (근무 장소 및 업무의 내용)</div>
+    <div class="clause-body">
+      <ul>
+        <li class="plain">근무 장소: ${workplace}</li>
+        <li class="plain">업무 내용: ${jobDesc}</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="clause">
+    <div class="clause-title">제3조 (소정근로시간)</div>
+    <div class="clause-body">
+      <ul>
+        <li class="plain">시업: ${timeStr(startTime)} / 종업: ${timeStr(endTime)} / 휴게: ${breakMin}분</li>
+        <li class="plain">1일 소정근로시간: ${workHoursPerDay.toFixed(1)}시간 / 주 소정근로시간: ${weeklyHours}시간</li>
+      </ul>
+      <div class="clause-note">※ 법정근로시간(1일 8시간, 1주 40시간) 이내에서 정함 (근로기준법 제50조)</div>
+    </div>
+  </div>
+
+  <div class="clause">
+    <div class="clause-title">제4조 (근무일 및 휴일)</div>
+    <div class="clause-body">
+      <ul>
+        <li class="plain">근무일: 매주 ${workDaysList}요일</li>
+        <li class="plain">주휴일: 매주 일요일 (또는 노사 합의에 따른 날) — 주 소정근로일 개근 시 유급 부여 (근로기준법 제55조 제1항)</li>
+        ${isOver5
+          ? '<li class="plain">법정 공휴일 및 노동절(5월 1일): 유급 휴일 (근로기준법 제55조 제2항, 노동절 제정에 관한 법률)</li>'
+          : '<li class="plain" style="color:#777;">※ 5인 미만 사업장: 법정 공휴일 유급 의무 미적용</li>'}
+      </ul>
+    </div>
+  </div>
+
+  <div class="clause">
+    <div class="clause-title">제5조 (임금) <span style="font-size:12px;font-weight:400;color:#555;">— 구성항목·계산방법·지급방법 법정 필수 기재 (근로기준법 제17조 제2항)</span></div>
+    <div class="clause-body">
+      <table class="wage-table">
+        <thead>
+          <tr>
+            <th>구성항목</th>
+            <th>금액</th>
+            <th>계산방법</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>${wageLabel} (기본급)</td>
+            <td>${wageAmount}</td>
+            <td>${calcMethod}</td>
+          </tr>
+          <tr>
+            <td>주휴수당</td>
+            <td>별도 산정</td>
+            <td>${weeklyHolidayText}</td>
+          </tr>
+        </tbody>
+      </table>
+      <ul>
+        ${overtimeText ? `<li class="plain">${overtimeText}</li>` : ''}
+        <li class="plain">임금 지급일: ${payDay} (지급일이 휴일인 경우 전일 지급)</li>
+        <li class="plain">지급 방법: ${payMethod}</li>
+      </ul>
+      <div class="clause-note">※ 2026년 최저시급 10,320원 / 최저월급 2,156,880원(209시간 기준) 이상 지급 (최저임금법 제6조)</div>
+    </div>
+  </div>
+
+  <div class="clause">
+    <div class="clause-title">제6조 (연차 유급휴가)</div>
+    <div class="clause-body">
+      <ul>
+        ${annualLeaveText.split('\n').map(line => `<li class="plain">${line.trim()}</li>`).join('')}
+      </ul>
+    </div>
+  </div>
+
+  <div class="clause">
+    <div class="clause-title">제7조 (퇴직급여)</div>
+    <div class="clause-body">
+      <ul>
+        <li class="plain">${severanceText}</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="clause">
+    <div class="clause-title">제8조 (사회보험 적용)</div>
+    <div class="clause-body">
+      <ul>
+        <li class="plain">${insuranceText}</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="clause">
+    <div class="clause-title">제9조 (임금명세서 교부)</div>
+    <div class="clause-body">
+      <ul>
+        <li class="plain">${payslipText}</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="clause">
+    <div class="clause-title">제10조 (근로계약서 교부)</div>
+    <div class="clause-body">
+      <ul>
+        <li class="plain">사업주는 근로계약 체결과 동시에 본 계약서를 사본하여 근로자의 요구와 관계없이 근로자에게 교부한다 (근로기준법 제17조 제2항).</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="clause">
+    <div class="clause-title">제11조 (성실 이행 의무)</div>
+    <div class="clause-body">
+      <ul>
+        <li class="plain">사업주와 근로자는 각자 근로계약, 취업규칙, 단체협약을 지키고 성실하게 이행하여야 한다.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="clause">
+    <div class="clause-title">제12조 (기타)</div>
+    <div class="clause-body">
+      <ul>
+        <li class="plain">이 계약에 정함이 없는 사항은 근로기준법령에 따른다.</li>
+        <li class="plain">사업주는 본 근로계약서를 근로자 퇴직일로부터 3년간 보존하여야 한다 (근로기준법 제42조).</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="sign-section">
+    <div class="sign-date">
+      위와 같이 근로계약을 체결하고, 계약서 2부를 작성하여 사업주와 근로자가 각각 1부씩 보관한다.<br>
+      <strong>${fmtDate(contractDate)}</strong>
+    </div>
+    <div class="sign-grid">
+      <div class="sign-box">
+        <div class="sign-box-title">사 업 주</div>
+        <div class="sign-box-line"></div>
+        <div class="sign-box-info">
+          사업체명: ${bizName}<br>
+          주　　소: ${bizAddr}<br>
+          ${bizPhone ? '전　　화: ' + bizPhone + '<br>' : ''}
+          대 표 자: ${ownerName} <span style="color:#aaa;">(서명 또는 날인)</span>
+        </div>
+      </div>
+      <div class="sign-box">
+        <div class="sign-box-title">근 로 자</div>
+        <div class="sign-box-line"></div>
+        <div class="sign-box-info">
+          성　　명: ${workerName} <span style="color:#aaa;">(서명 또는 날인)</span><br>
+          생년월일: ${workerBirth ? fmtDate(workerBirth) : '　　　　　'}<br>
+          주　　소: ${workerAddr}<br>
+          ${workerPhone ? '연 락 처: ' + workerPhone : ''}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>`;
+
+  const preview = document.getElementById('preview');
+  const isRegen = preview.classList.contains('show');
+  preview.innerHTML = html;
+  preview.className = 'show';
+  document.getElementById('printBtn').style.display = 'inline-block';
+  if (isRegen) {
+    showToast('계약서가 업데이트됐어요 ✓');
+  } else {
+    preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+/* ── 초기화 ── */
+function resetAll() {
+  document.querySelectorAll('input').forEach(el => {
+    if (el.type === 'number')      el.value = el.id === 'wage' ? MIN_HOURLY : '';
+    else if (el.type === 'time')   el.value = el.id === 'startTime' ? '09:00' : '18:00';
+    else                           el.value = '';
+  });
+  document.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
+  activeDays = new Set(['월','화','수','목','금']);
+  document.querySelectorAll('.day-btn').forEach(b => {
+    b.classList.toggle('active', activeDays.has(b.dataset.day));
+  });
+  document.getElementById('date-fields').style.display      = 'none';
+  document.getElementById('probation-fields').style.display  = 'none';
+  document.getElementById('weeklyHint').style.display         = 'none';
+  document.getElementById('durationWarn').style.display       = 'none';
+  document.getElementById('wageAlert').className = 'alert alert-danger';
+  document.getElementById('wageOk').className    = 'alert alert-ok';
+  document.getElementById('preview').className   = '';
+  document.getElementById('preview').innerHTML   = '';
+  document.getElementById('printBtn').style.display = 'none';
+  document.getElementById('contractDate').value  = new Date().toISOString().split('T')[0];
+  document.getElementById('workStart').value     = new Date().toISOString().split('T')[0];
+  document.getElementById('wageLbl').textContent  = '시급 (원)';
+  document.getElementById('wageHint').textContent = '2026년 최저시급: 10,320원';
+}
+
+// 초기값
+document.getElementById('contractDate').value = new Date().toISOString().split('T')[0];
+document.getElementById('workStart').value    = new Date().toISOString().split('T')[0];
+
+/* ── 토스트 ── */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.opacity = '1';
+  setTimeout(() => { t.style.opacity = '0'; }, 2500);
+}
+</script>
+</body>
+</html>
