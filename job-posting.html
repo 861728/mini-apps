@@ -243,7 +243,7 @@ async function generate() {
   const prompt = buildPrompt({ bizInfo, wage, workType, workTime, period, tags, channel });
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/generate-reply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
